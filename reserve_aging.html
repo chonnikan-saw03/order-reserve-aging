@@ -1,0 +1,1016 @@
+<!-- Order Reserve Aging Dashboard — Tableau Dashboard Extension
+     ดึงข้อมูลจาก BigQuery (boonthavorn-data-analytic.tableau.ds_vdo_order_reserve_aging) ผ่าน Google OAuth
+     ตอนนี้ CONFIG.GOOGLE_CLIENT_ID ยังว่าง -> หน้านี้แสดง "ข้อมูลตัวอย่าง (Mock)" ให้ดูหน้าตาก่อน
+     เมื่อมี OAuth Client ID แล้ว ใส่ค่าใน CONFIG ด้านล่าง กด "Refresh Data" จะ sign-in และดึงข้อมูลจริง -->
+<meta charset="UTF-8" />
+<title>Order Reserve Aging Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --font-body: Arial, "Helvetica Neue", Helvetica, "Segoe UI", sans-serif;
+    --header-bg: #0f1c38;
+    --header-bg-2: #1b2f56;
+    --header-ink: #ffffff;
+    --header-sub-ink: rgba(255,255,255,0.68);
+    --header-tab-bg: rgba(255,255,255,0.08);
+    --header-tab-bg-hover: rgba(255,255,255,0.16);
+    --page-bg: #ffffff;
+    --surface-1: #ffffff;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --gridline: #e1e0d9;
+    --chip-bg: #f3f2ef;
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --status-good: #0ca30c;
+    --status-warning: #b8790f;
+    --status-serious: #c85f38;
+    --status-critical: #d03b3b;
+    --status-good-soft: #7bc97b;
+    --status-warning-soft: #e0ab5c;
+    --status-serious-soft: #e29874;
+    --status-critical-soft: #e58f8f;
+    --kpi-value-ink: #12233f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page-bg: #0d0d0d;
+      --surface-1: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --border: rgba(255,255,255,0.10);
+      --gridline: #2c2c2a;
+      --chip-bg: #262623;
+      --accent: #3987e5;
+      --status-good: #0ca30c;
+      --status-warning: #c98500;
+      --status-serious: #d97a53;
+      --status-critical: #e66767;
+      --status-good-soft: #6fbf6f;
+      --status-warning-soft: #d9a35c;
+      --status-serious-soft: #dd8f6e;
+      --status-critical-soft: #e08585;
+      --kpi-value-ink: var(--text-primary);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page-bg: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --border: rgba(255,255,255,0.10);
+    --gridline: #2c2c2a;
+    --chip-bg: #262623;
+    --accent: #3987e5;
+    --status-good: #0ca30c;
+    --status-warning: #c98500;
+    --status-serious: #d97a53;
+    --status-critical: #e66767;
+    --status-good-soft: #6fbf6f;
+    --status-warning-soft: #d9a35c;
+    --status-serious-soft: #dd8f6e;
+    --status-critical-soft: #e08585;
+    --kpi-value-ink: var(--text-primary);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    background: var(--page-bg);
+    color: var(--text-primary);
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  .app-shell { min-height: 100vh; }
+
+  /* ---- Topbar (fixed brand navy, same in light/dark) ---- */
+  .topbar {
+    background: linear-gradient(90deg, var(--header-bg), var(--header-bg-2));
+    color: var(--header-ink);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 14px 24px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .topbar-icon svg { width: 20px; height: 20px; }
+  .topbar-title-group { margin-right: auto; }
+  .topbar-title { font-size: 16px; font-weight: 700; letter-spacing: 0.04em; margin: 0; text-transform: uppercase; text-wrap: balance; }
+  .topbar-subtitle { font-size: 12px; color: var(--header-sub-ink); margin: 2px 0 0; }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .btn {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--gridline);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--chip-bg); }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent); filter: brightness(1.05); }
+  .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+
+  /* ---- Main ---- */
+  .main { max-width: 1800px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+  }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .kpi-card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 22px; display: flex; align-items: center; gap: 16px;
+  }
+  .kpi-icon {
+    width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--chip-bg); color: var(--accent);
+  }
+  .kpi-icon svg { width: 22px; height: 22px; }
+  .kpi-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 0 0 6px; }
+  .kpi-value { font-size: 34px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--kpi-value-ink); }
+
+  .table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .table-title-group { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .table-title { font-size: 16px; font-weight: 700; margin: 0; }
+  .table-count-note { font-size: 12px; color: var(--text-muted); }
+  .table-toolbar-actions { display: flex; align-items: center; gap: 8px; }
+  .search-input {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid var(--gridline);
+    background: var(--page-bg); color: var(--text-primary); font-size: 13px; width: 260px; max-width: 100%;
+  }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table-scroll table { min-width: 900px; }
+  thead th {
+    text-align: left; padding: 10px 12px; color: var(--text-muted); font-weight: 700;
+    font-size: 11px; letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--gridline); white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--text-primary); }
+  thead th .sort-arrow { margin-left: 4px; color: var(--accent); }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--gridline); color: var(--text-primary); white-space: nowrap; }
+  tbody tr:hover { background: var(--chip-bg); }
+  .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+  .empty-row td { text-align: center; color: var(--text-muted); padding: 30px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--chip-bg); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ---- Overview ---- */
+  .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 700; margin: 0 0 8px; flex-wrap: wrap; }
+  .section-heading-title { display: flex; align-items: center; gap: 8px; }
+  .section-heading .icon { width: 28px; height: 28px; border-radius: 8px; background: var(--chip-bg); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .section-heading .icon svg { width: 15px; height: 15px; }
+  .download-all-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.18); background: var(--header-tab-bg); color: var(--header-ink);
+    font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .download-all-btn:hover { background: var(--header-tab-bg-hover); }
+  .section-rule { height: 3px; border-radius: 2px; background: var(--accent); opacity: 0.35; margin-bottom: 18px; }
+  .overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+  @media (max-width: 1100px) { .overview-grid { grid-template-columns: 1fr; } }
+  .overview-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; min-width: 0; }
+  .overview-card > * { min-width: 0; }
+  .chart-card-title { font-size: 19px; font-weight: 700; margin: 0 0 2px; }
+  .chart-card-sub { font-size: 14px; color: var(--text-muted); margin: 0 0 4px; }
+
+  .card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 14px; }
+  .view-toggle { display: inline-flex; background: var(--chip-bg); border-radius: 8px; padding: 3px; gap: 2px; }
+  .view-toggle button {
+    padding: 5px 12px; border: none; background: transparent; border-radius: 6px;
+    font-size: 11px; font-weight: 700; color: var(--text-secondary); cursor: pointer; font-family: inherit;
+  }
+  .view-toggle button.active { background: var(--surface-1); color: var(--accent); box-shadow: 0 1px 2px rgba(11,11,11,0.08); }
+  .card-view { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .donut-flex-area { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; }
+  .card-view > * { min-width: 0; }
+  #aging-bars { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+  #branch-bars { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+
+  .bar-row { display: grid; grid-template-columns: 145px 1fr auto 58px; align-items: center; gap: 10px; font-size: 16px; }
+  .bar-row .bar-label { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { display: block; background: var(--chip-bg); border-radius: 999px; height: 12px; overflow: hidden; }
+  .bar-fill { display: block; height: 100%; border-radius: 999px; }
+  .bar-value { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  .bar-header-row { display: grid; grid-template-columns: 145px 1fr auto 58px; gap: 10px; margin-bottom: 8px; }
+  .branch-header-row { display: grid; grid-template-columns: 145px 1fr auto 58px; gap: 10px; margin-bottom: 8px; }
+  .branch-header-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-muted); text-align: right; white-space: nowrap; }
+  .branch-row { display: grid; grid-template-columns: 145px 1fr auto 58px; align-items: center; gap: 10px; font-size: 16px; }
+  .branch-row .bar-label { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .branch-pct { text-align: right; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .mini-table-scroll { overflow-x: auto; }
+  .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mini-table-scroll .mini-table { margin-top: 0; min-width: 460px; }
+  .mini-table th { text-align: left; color: var(--text-muted); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.01em; padding: 8px 6px; border-bottom: 1px solid var(--gridline); line-height: 1.25; white-space: normal; word-break: break-word; }
+  .mini-table td { padding: 8px 6px; border-bottom: 1px solid var(--gridline); white-space: normal; word-break: break-word; font-size: 15px; }
+  .mini-table td:first-child { white-space: nowrap; }
+  .mini-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; flex-shrink: 0; }
+
+  .donut-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 6px; }
+  .donut-legend .legend-item { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--text-secondary); }
+  .donut-outer-wrap { position: relative; width: 100%; min-width: 0; aspect-ratio: 560 / 300; container-type: inline-size; }
+  .donut-outer-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .donut-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(116px, 22cqw); text-align: center; pointer-events: none; }
+  .donut-center-value { font-size: clamp(13px, 4.6cqw, 21px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .donut-center-label { font-size: clamp(7px, 2.4cqw, 11px); line-height: 1.25; color: var(--text-muted); margin-top: 2px; }
+  .donut-label-item { position: absolute; transform: translateY(-50%); max-width: 140px; font-size: 16px; line-height: 1.3; pointer-events: none; }
+  .donut-label-item .dl-title { font-weight: 700; color: var(--text-primary); }
+  .donut-label-item .dl-amount { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  @media print {
+    .header-actions, .table-toolbar .search-input { display: none; }
+    .table-scroll { overflow: visible; }
+  }
+</style>
+
+<div class="app-shell">
+  <header class="topbar">
+    <div class="topbar-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div class="topbar-title-group">
+      <h1 class="topbar-title">Order Reserve Aging Dashboard</h1>
+      <p class="topbar-subtitle" id="topbar-subtitle">ds_vdo_order_reserve_aging · ข้อมูลตัวอย่าง (Mock)</p>
+    </div>
+    <button type="button" class="download-all-btn" id="btn-download-all" title="ดาวน์โหลดข้อมูลทั้งหมด (Excel, แยก sheet)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+      DOWNLOADS
+    </button>
+  </header>
+
+  <main class="main">
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+        <div>
+          <p class="kpi-label">จำนวนชิ้นใน SO</p>
+          <p class="kpi-value" id="kpi-so-qty">-</p>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M8 15h.01M12 15h4"/></svg></div>
+        <div>
+          <p class="kpi-label">มูลค่าใน SO</p>
+          <p class="kpi-value" id="kpi-so-amount">-</p>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+        <div>
+          <p class="kpi-label">จำนวนชิ้นค้างตัด</p>
+          <p class="kpi-value" id="kpi-reserve-qty">-</p>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></div>
+        <div>
+          <p class="kpi-label">มูลค่าค้างตัด</p>
+          <p class="kpi-value" id="kpi-reserve-amount">-</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="overview-section" style="scroll-margin-top:16px">
+      <h2 class="section-heading">
+        <span class="section-heading-title">
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
+          ภาพรวม Order Reserve Aging
+        </span>
+      </h2>
+      <div class="section-rule"></div>
+      <div class="overview-grid">
+        <div class="overview-card" data-card="branch">
+          <p class="chart-card-title">มูลค่าค้างตัดรายสาขา</p>
+          <p class="chart-card-sub">เรียงจากมูลค่าค้างตัดมากไปน้อย</p>
+          <div class="card-toolbar">
+            <div class="view-toggle">
+              <button type="button" class="active" data-view="chart">Summary</button>
+              <button type="button" data-view="detail">Detail</button>
+            </div>
+          </div>
+          <div class="card-view card-view-chart">
+            <div class="branch-header-row"><span></span><span></span><span class="branch-header-label">มูลค่าค้างตัด</span><span class="branch-header-label">% Share</span></div>
+            <div id="branch-bars"></div>
+          </div>
+          <div class="card-view card-view-detail" style="display:none">
+            <div class="mini-table-scroll">
+              <table class="mini-table">
+                <thead><tr><th>สาขา</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
+                <tbody id="branch-detail-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="overview-card" data-card="aging">
+          <p class="chart-card-title">มูลค่าค้างตัดราย Aging Tier</p>
+          <p class="chart-card-sub">มูลค่าค้างตัดและสัดส่วน % ตามช่วงอายุ</p>
+          <div class="card-toolbar">
+            <div class="view-toggle">
+              <button type="button" class="active" data-view="chart">Summary</button>
+              <button type="button" data-view="detail">Detail</button>
+            </div>
+          </div>
+          <div class="card-view card-view-chart">
+            <div class="bar-header-row"><span></span><span></span><span class="branch-header-label">มูลค่าค้างตัด</span><span class="branch-header-label">% Share</span></div>
+            <div id="aging-bars"></div>
+          </div>
+          <div class="card-view card-view-detail" style="display:none">
+            <div class="mini-table-scroll">
+              <table class="mini-table">
+                <thead><tr><th>ช่วงอายุ</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
+                <tbody id="aging-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="overview-card" data-card="priority">
+          <p class="chart-card-title">มูลค่าค้างตัดราย Delivery Priority</p>
+          <p class="chart-card-sub">สัดส่วนมูลค่าค้างตัดตาม Delivery Priority</p>
+          <div class="card-toolbar">
+            <div class="view-toggle">
+              <button type="button" class="active" data-view="chart">Summary</button>
+              <button type="button" data-view="detail">Detail</button>
+            </div>
+          </div>
+          <div class="card-view card-view-chart">
+            <div class="donut-legend" id="priority-legend"></div>
+            <div class="donut-flex-area">
+              <div class="donut-outer-wrap">
+                <svg id="priority-donut" viewBox="0 0 560 300" preserveAspectRatio="xMidYMid meet"></svg>
+                <div class="donut-center" id="priority-center"></div>
+                <div id="priority-labels"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card-view card-view-detail" style="display:none">
+            <div class="mini-table-scroll">
+              <table class="mini-table">
+                <thead><tr><th>Delivery Priority</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
+                <tbody id="priority-detail-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="detail-section" style="scroll-margin-top:16px">
+      <div class="table-toolbar">
+        <div class="table-title-group">
+          <h2 class="table-title">Detail Order Reserve Aging</h2>
+          <span class="table-count-note" id="table-count-note"></span>
+        </div>
+        <div class="table-toolbar-actions">
+          <input class="search-input" id="search-input" type="text" placeholder="ค้นหา SO / สินค้า..." />
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr id="table-head-row"></tr>
+          </thead>
+          <tbody id="table-body">
+            <tr class="empty-row"><td colspan="22">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://extensions.tableauusercontent.com/lib/tableau.extensions.1.latest.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ---------- CONFIG ----------
+  // ใส่ OAuth Client ID (Web application) จาก GCP Console > APIs & Services > Credentials
+  // ต้องเพิ่ม origin ที่ host ไฟล์นี้ไว้ใน "Authorized JavaScript origins" (เช่น http://localhost:8765)
+  // ถ้าเว้นว่างไว้ หน้านี้จะใช้ "ข้อมูลตัวอย่าง (Mock)" แทนเสมอ
+  var CONFIG = {
+    GOOGLE_CLIENT_ID: '',
+    PROJECT_ID: 'boonthavorn-data-analytic',
+    DATASET_ID: 'tableau',
+    TABLE_ID: 'ds_vdo_order_reserve_aging',
+    OAUTH_SCOPE: 'https://www.googleapis.com/auth/bigquery.readonly',
+    MAX_ROWS: 20000
+  };
+
+  var BQ_SQL =
+    'SELECT vendor_id, full_name, branch, sales_group, ref_sales_rep, ref_sls_rep_f_name, ' +
+    'sls_rep_id, sls_rep_f_name, so_aging_tiers, delivery_priority, article_id, article_name_th, ' +
+    'brand, mch3_desc, mch2_desc, mch1_desc, mch_desc, so_number, so_qty, so_amount, ' +
+    'remain_reserve_qty, remain_reserve_amount ' +
+    'FROM `' + CONFIG.PROJECT_ID + '.' + CONFIG.DATASET_ID + '.' + CONFIG.TABLE_ID + '` ' +
+    'LIMIT ' + CONFIG.MAX_ROWS;
+
+  var NUMERIC_FIELDS = ['so_qty', 'so_amount', 'remain_reserve_qty', 'remain_reserve_amount'];
+  var CATEGORICAL_HUES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
+  var DETAIL_COLUMNS = [
+    { key: 'article_id', label: 'article_id' },
+    { key: 'article_name_th', label: 'article_name_th' },
+    { key: 'brand', label: 'brand' },
+    { key: 'mch1_desc', label: 'mch1_desc' },
+    { key: 'mch2_desc', label: 'mch2_desc' },
+    { key: 'mch3_desc', label: 'mch3_desc' },
+    { key: 'mch_desc', label: 'mch_desc' },
+    { key: 'so_number', label: 'so_number' },
+    { key: 'so_aging_tiers', label: 'so_aging_tiers', pill: 'aging' },
+    { key: 'delivery_priority', label: 'delivery_priority', pill: 'priority' },
+    { key: 'branch', label: 'branch' },
+    { key: 'sales_group', label: 'sales_group' },
+    { key: 'sls_rep_id', label: 'sls_rep_id' },
+    { key: 'sls_rep_f_name', label: 'sls_rep_f_name' },
+    { key: 'ref_sales_rep', label: 'ref_sales_rep' },
+    { key: 'ref_sls_rep_f_name', label: 'ref_sls_rep_f_name' },
+    { key: 'vendor_id', label: 'vendor_id' },
+    { key: 'full_name', label: 'full_name' },
+    { key: 'so_qty', label: 'จำนวนใน SO', numeric: true, fmt: 'int' },
+    { key: 'so_amount', label: 'มูลค่าใน SO', numeric: true, fmt: 'money2' },
+    { key: 'remain_reserve_qty', label: 'จำนวนค้างตัด', numeric: true, fmt: 'int' },
+    { key: 'remain_reserve_amount', label: 'มูลค่าค้างตัด', numeric: true, fmt: 'money2' }
+  ];
+
+  // ---------- State ----------
+  var state = {
+    rows: [],
+    source: 'mock',
+    updatedAt: null,
+    search: '',
+    sortField: 'remain_reserve_amount',
+    sortDir: 'desc'
+  };
+  var priorityColorMap = {};
+
+  // ---------- Helpers ----------
+  function fmtInt(n) { return Math.round(n).toLocaleString('th-TH'); }
+  function fmtMoney(n) { return '฿' + Math.round(n).toLocaleString('th-TH'); }
+  function fmtMillion(n) { return '฿' + (n / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M'; }
+  function fmtMoney2(n) { return '฿' + n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtTimestamp(d) {
+    try {
+      return d.toLocaleString('th-TH-u-ca-buddhist', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch (e) {
+      return d.toLocaleString('th-TH');
+    }
+  }
+  function uniqueSorted(rows, field) {
+    var set = {};
+    rows.forEach(function (r) { if (r[field]) set[r[field]] = true; });
+    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, 'th'); });
+  }
+  function agingStatus(tier) {
+    var letter = (tier || '').trim().charAt(0).toUpperCase();
+    if (letter === 'A' || letter === 'B') return 'good';
+    if (letter === 'C' || letter === 'D') return 'warning';
+    if (letter === 'E' || letter === 'F') return 'serious';
+    return 'critical';
+  }
+  function statusColor(status) {
+    return { good: 'var(--status-good-soft)', warning: 'var(--status-warning-soft)', serious: 'var(--status-serious-soft)', critical: 'var(--status-critical-soft)' }[status];
+  }
+  function colorForPriority(value) {
+    return priorityColorMap[value] || 'var(--text-muted)';
+  }
+  var SEQUENTIAL_BLUE_RAMP = ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf'];
+  function colorForRank(index, total) {
+    if (total <= 1) return SEQUENTIAL_BLUE_RAMP[SEQUENTIAL_BLUE_RAMP.length - 1];
+    var t = index / (total - 1);
+    var step = Math.round(t * (SEQUENTIAL_BLUE_RAMP.length - 1));
+    return SEQUENTIAL_BLUE_RAMP[step];
+  }
+  function setStatusPill(kind, text) {
+    document.getElementById('topbar-subtitle').textContent = CONFIG.TABLE_ID + ' · ' + text;
+  }
+
+  // ---------- Mock data ----------
+  function buildMockData() {
+    var products = [
+      ['1287255', 'C11003H สุขภัณฑ์ชิ้นเดียว3/5.5L Wynn II', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์ชิ้นเดียว', 'เครื่องสุขภัณฑ์'],
+      ['1308051', 'C109227 WH/GR สุขภัณฑ์อัตโนมัติ โปร ทอง', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์อัตโนมัติ', 'เครื่องสุขภัณฑ์'],
+      ['1201563', 'CT2326A ก็อกผสมยืนอาบ Essentia', 'COTTO', 'ห้องน้ำ', 'ก็อกน้ำ', 'ก็อกผสมยืนอาบ', 'ก็อกและอุปกรณ์'],
+      ['1172004', 'CT2321A ก็อกผสมอ่างล้างหน้า ESSENTIA', 'COTTO', 'ห้องน้ำ', 'ก็อกน้ำ', 'ก็อกผสมอ่างล้างหน้า', 'ก็อกและอุปกรณ์'],
+      ['1264894', 'ZF17V#BGR หัวฝักบัวก้านแข็งขนาด 12X12', 'COTTO', 'ห้องน้ำ', 'ฝักบัว', 'ฝักบัวก้านแข็ง', 'ก็อกและอุปกรณ์'],
+      ['1114705', 'C135107 สุขภัณฑ์สองชิ้น4.5 HERCULES CURVE', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์สองชิ้น', 'เครื่องสุขภัณฑ์'],
+      ['1088805', 'C13021 สุขภัณฑ์นั่งราบใช้ฟลัช SYDNEYS(45)', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์นั่งราบ', 'เครื่องสุขภัณฑ์'],
+      ['1345196', 'CT2392A#BGR ก็อกผสมอ่างล้างหน้า', 'COTTO', 'ห้องน้ำ', 'ก็อกน้ำ', 'ก็อกผสมอ่างล้างหน้า', 'ก็อกและอุปกรณ์'],
+      ['1248275', 'C10217 สุขภัณฑ์อัตโนมัติ 6 L. รุ่น VIZIO', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์อัตโนมัติ', 'เครื่องสุขภัณฑ์'],
+      ['2201044', 'SC-2210 กระเบื้องปูพื้น 60x60', 'SCG', 'กระเบื้อง', 'กระเบื้องพื้น', 'กระเบื้องปูพื้นขนาดใหญ่', 'วัสดุปูพื้น-ผนัง'],
+      ['2201099', 'SC-1180 กระเบื้องบุผนัง 30x60', 'SCG', 'กระเบื้อง', 'กระเบื้องผนัง', 'กระเบื้องบุผนัง', 'วัสดุปูพื้น-ผนัง'],
+      ['3300112', 'AM-500 อ่างล้างหน้าแขวนผนัง', 'AMERICAN STANDARD', 'ห้องน้ำ', 'อ่างล้างหน้า', 'อ่างล้างหน้าแขวนผนัง', 'เครื่องสุขภัณฑ์']
+    ];
+    var branches = ['สาขารัชดา', 'สาขาบางนา', 'สาขาพระราม 2', 'สาขาสุราษฎร์ธานี', 'สาขาพุทธมณฑล',
+      'สาขาเกษตร-นวมินทร์', 'สาขาราชพฤกษ์', 'สาขาพัทยา', 'สาขารังสิต', 'สาขาเชียงใหม่',
+      'สาขาหัวหิน', 'สาขาอุดรธานี', 'สาขาโคราช', 'สาขาพิษณุโลก', 'สาขาระยอง'];
+    var salesGroups = ['10 : ร้านค้าปลีก', '20 : โครงการ', '30 : ลูกค้าองค์กร'];
+    var salesReps = ['สมชาย ใจดี', 'วิภา ศรีสุข', 'ประยุทธ มั่นคง'];
+    var salesRepIds = ['SR-101', 'SR-102', 'SR-103'];
+    var refSalesRepNames = ['กมล ศรีทอง', 'อรุณี พงษ์เจริญ', 'ธนกร วัฒนกุล'];
+    var refSalesRepIds = ['SR-201', 'SR-202', 'SR-203'];
+    var agingTiers = ['A. 1-15 Days', 'B. 16-30 Days', 'C. 31-60 Days', 'D. 61-90 Days', 'E. 91-120 Days',
+      'F. 121-150 Days', 'G. 151-180 Days', 'H. 181-365 Days', 'I. > 1 Year'];
+    var priorities = ['10 : รับทันที', '30 : สาขาส่งให้', '40 : ส่งต่อ', '80 : Click&Collect'];
+    var vendorId = '10254';
+    var vendorName = 'บจก.สยามซานิทารีแวร์อินดัสตรี';
+
+    var rows = [];
+    var seed = 42;
+    function rand() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    function pick(arr) { return arr[Math.floor(rand() * arr.length)]; }
+
+    for (var i = 0; i < 220; i++) {
+      var p = pick(products);
+      var qty = Math.round(4 + rand() * 200);
+      var unitPrice = 400 + rand() * 5000;
+      var soAmount = qty * unitPrice;
+      var remainQty = Math.round(qty * (0.4 + rand() * 0.6));
+      var remainAmount = remainQty * unitPrice;
+      var repIdx = Math.floor(rand() * salesReps.length);
+      var refIdx = Math.floor(rand() * refSalesRepNames.length);
+      rows.push({
+        vendor_id: vendorId,
+        full_name: vendorName,
+        branch: pick(branches),
+        sales_group: pick(salesGroups),
+        sls_rep_id: salesRepIds[repIdx],
+        sls_rep_f_name: salesReps[repIdx],
+        ref_sales_rep: refSalesRepIds[refIdx],
+        ref_sls_rep_f_name: refSalesRepNames[refIdx],
+        so_aging_tiers: pick(agingTiers),
+        delivery_priority: pick(priorities),
+        article_id: p[0],
+        article_name_th: p[1],
+        brand: p[2],
+        mch1_desc: p[3],
+        mch2_desc: p[4],
+        mch3_desc: p[5],
+        mch_desc: p[6],
+        so_number: 'SO' + (500000 + i),
+        so_qty: qty,
+        so_amount: Math.round(soAmount * 100) / 100,
+        remain_reserve_qty: remainQty,
+        remain_reserve_amount: Math.round(remainAmount * 100) / 100
+      });
+    }
+    return rows;
+  }
+
+  function loadMockData() {
+    setStatusPill('mock', 'ข้อมูลตัวอย่าง (Mock)');
+    setData(buildMockData(), 'mock');
+  }
+
+  // ---------- BigQuery (OAuth) ----------
+  var tokenClient = null;
+  var accessToken = null;
+
+  function ensureGisClient() {
+    if (tokenClient || typeof google === 'undefined' || !google.accounts || !CONFIG.GOOGLE_CLIENT_ID) return;
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CONFIG.GOOGLE_CLIENT_ID,
+      scope: CONFIG.OAUTH_SCOPE,
+      callback: function (resp) {
+        if (resp.error) {
+          setStatusPill('error', 'เข้าสู่ระบบไม่สำเร็จ: ' + resp.error);
+          return;
+        }
+        accessToken = resp.access_token;
+        loadFromBigQuery();
+      }
+    });
+  }
+
+  function normalizeRow(raw) {
+    var out = {};
+    Object.keys(raw).forEach(function (k) {
+      out[k] = NUMERIC_FIELDS.indexOf(k) >= 0 ? parseFloat(raw[k] || 0) : raw[k];
+    });
+    return out;
+  }
+
+  function runBigQueryQuery(sql) {
+    var url = 'https://bigquery.googleapis.com/bigquery/v2/projects/' + CONFIG.PROJECT_ID + '/queries';
+    return fetch(url, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: sql, useLegacySql: false, maxResults: CONFIG.MAX_ROWS })
+    })
+      .then(function (res) {
+        if (!res.ok) return res.text().then(function (t) { throw new Error('BigQuery ' + res.status + ': ' + t); });
+        return res.json();
+      })
+      .then(pollUntilComplete)
+      .then(function (data) {
+        var fields = data.schema.fields.map(function (f) { return f.name; });
+        return (data.rows || []).map(function (r) {
+          var obj = {};
+          r.f.forEach(function (cell, i) { obj[fields[i]] = cell.v; });
+          return normalizeRow(obj);
+        });
+      });
+  }
+
+  function pollUntilComplete(data) {
+    if (data.jobComplete) return data;
+    var jobRef = data.jobReference;
+    return new Promise(function (resolve) { setTimeout(resolve, 1000); }).then(function () {
+      var pollUrl = 'https://bigquery.googleapis.com/bigquery/v2/projects/' + jobRef.projectId +
+        '/queries/' + jobRef.jobId + '?location=' + (jobRef.location || '');
+      return fetch(pollUrl, { headers: { Authorization: 'Bearer ' + accessToken } })
+        .then(function (res) { return res.json(); })
+        .then(pollUntilComplete);
+    });
+  }
+
+  function loadFromBigQuery() {
+    setStatusPill('loading', 'กำลังดึงข้อมูลจาก BigQuery...');
+    var btn = document.getElementById('btn-refresh');
+    if (btn) btn.disabled = true;
+    runBigQueryQuery(BQ_SQL)
+      .then(function (rows) {
+        setStatusPill('live', 'Live (BigQuery)');
+        setData(rows, 'live');
+      })
+      .catch(function (err) {
+        console.error(err);
+        setStatusPill('error', 'ดึงข้อมูลไม่สำเร็จ: ' + err.message);
+      })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+
+  function refreshData() {
+    if (!CONFIG.GOOGLE_CLIENT_ID) {
+      loadMockData();
+      return;
+    }
+    ensureGisClient();
+    if (!tokenClient) {
+      setStatusPill('error', 'โหลด Google Identity Services ไม่สำเร็จ ลองรีเฟรชหน้า');
+      return;
+    }
+    tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+  }
+
+  // ---------- Data / Render ----------
+  function setData(rows, source) {
+    state.rows = rows;
+    state.source = source;
+    state.updatedAt = new Date();
+    priorityColorMap = {};
+    uniqueSorted(rows, 'delivery_priority').forEach(function (v, i) { priorityColorMap[v] = CATEGORICAL_HUES[i % CATEGORICAL_HUES.length]; });
+    renderAll();
+  }
+
+  function getFiltered() {
+    var q = state.search.trim().toLowerCase();
+    var rows = state.rows.filter(function (r) {
+      if (q) {
+        var hay = (r.so_number + ' ' + r.article_id + ' ' + r.article_name_th).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    var field = state.sortField, dir = state.sortDir === 'asc' ? 1 : -1;
+    rows.sort(function (a, b) {
+      var va = a[field], vb = b[field];
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), 'th') * dir;
+    });
+    return rows;
+  }
+
+  function renderAll() {
+    var filtered = getFiltered();
+    renderKPIs(filtered);
+    renderOverview(filtered);
+    renderTable(filtered);
+  }
+
+  var AGING_TIER_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+
+  function groupByAmount(rows, field) {
+    var totals = {};
+    rows.forEach(function (r) {
+      var key = r[field];
+      if (!key) return;
+      totals[key] = (totals[key] || 0) + r.remain_reserve_amount;
+    });
+    return totals;
+  }
+
+  function groupMetrics(rows, field) {
+    var totals = {};
+    rows.forEach(function (r) {
+      var key = r[field];
+      if (!key) return;
+      if (!totals[key]) totals[key] = { so_qty: 0, so_amount: 0, remain_reserve_qty: 0, remain_reserve_amount: 0 };
+      totals[key].so_qty += r.so_qty;
+      totals[key].so_amount += r.so_amount;
+      totals[key].remain_reserve_qty += r.remain_reserve_qty;
+      totals[key].remain_reserve_amount += r.remain_reserve_amount;
+    });
+    return totals;
+  }
+
+  function renderOverview(filtered) {
+    var grandTotal = filtered.reduce(function (s, r) { return s + r.remain_reserve_amount; }, 0);
+
+    // -- by aging tier --
+    var agingMetrics = groupMetrics(filtered, 'so_aging_tiers');
+    var agingTotals = {};
+    Object.keys(agingMetrics).forEach(function (k) { agingTotals[k] = agingMetrics[k].remain_reserve_amount; });
+    var agingLabels = uniqueSorted(filtered, 'so_aging_tiers').sort(function (a, b) {
+      return AGING_TIER_ORDER.indexOf(a.charAt(0)) - AGING_TIER_ORDER.indexOf(b.charAt(0));
+    });
+    var agingMax = Math.max.apply(null, agingLabels.map(function (l) { return agingTotals[l]; }).concat([0]));
+    document.getElementById('aging-bars').innerHTML = agingLabels.map(function (label) {
+      var amt = agingTotals[label];
+      var pct = grandTotal > 0 ? Math.round((amt / grandTotal) * 100) : 0;
+      var widthPct = agingMax > 0 ? (amt / agingMax) * 100 : 0;
+      var color = statusColor(agingStatus(label));
+      return '<div class="bar-row">' +
+        '<span class="bar-label">' + escapeHtml(label) + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + widthPct + '%;background:' + color + '"></span></span>' +
+        '<span class="bar-value">' + fmtMoney(amt) + '</span>' +
+        '<span class="branch-pct">' + pct + '%</span>' +
+        '</div>';
+    }).join('');
+    document.getElementById('aging-table').innerHTML = agingLabels.map(function (label) {
+      var m = agingMetrics[label];
+      return '<tr><td><span class="legend-dot" style="background:' + statusColor(agingStatus(label)) + '"></span>' + escapeHtml(label) + '</td>' +
+        '<td class="num">' + fmtInt(m.so_qty) + '</td>' +
+        '<td class="num">' + fmtMoney(m.so_amount) + '</td>' +
+        '<td class="num">' + fmtInt(m.remain_reserve_qty) + '</td>' +
+        '<td class="num">' + fmtMoney(m.remain_reserve_amount) + '</td></tr>';
+    }).join('');
+
+    // -- by delivery priority (donut with outside labels) --
+    var priorityMetrics = groupMetrics(filtered, 'delivery_priority');
+    var priorityTotals = {};
+    Object.keys(priorityMetrics).forEach(function (k) { priorityTotals[k] = priorityMetrics[k].remain_reserve_amount; });
+    var priorityLabels = uniqueSorted(filtered, 'delivery_priority');
+    var VBW = 560, VBH = 300, cx = 280, cy = 150, r = 82, strokeW = 26;
+    var circumference = 2 * Math.PI * r;
+    var dashOffset = 0, angleDeg = 0;
+    var arcs = '';
+    var segs = [];
+    priorityLabels.forEach(function (label) {
+      var amt = priorityTotals[label];
+      var frac = grandTotal > 0 ? amt / grandTotal : 0;
+      var pct = grandTotal > 0 ? Math.round(frac * 1000) / 10 : 0;
+      var color = colorForPriority(label);
+      var fullDash = frac * circumference;
+      var SEG_GAP = 4;
+      var dash = Math.max(fullDash - SEG_GAP, 0);
+      arcs += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + strokeW + '" ' +
+        'stroke-linecap="butt" stroke-dasharray="' + dash + ' ' + (circumference - dash) + '" stroke-dashoffset="' + (-(dashOffset + SEG_GAP / 2)) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle>';
+
+      var midDeg = angleDeg + (frac * 360) / 2;
+      var rad = (midDeg * Math.PI) / 180 - Math.PI / 2;
+      var side = Math.cos(rad) >= 0 ? 1 : -1;
+      var edge = r + strokeW / 2 + 8;
+      var elbow = r + 58;
+      var ex = cx + Math.cos(rad) * edge, ey = cy + Math.sin(rad) * edge;
+      var kx = cx + Math.cos(rad) * elbow, ky = cy + Math.sin(rad) * elbow;
+      segs.push({ label: label, amt: amt, pct: pct, side: side, ex: ex, ey: ey, kx: kx, ky: ky, hy: ky });
+
+      dashOffset += fullDash;
+      angleDeg += frac * 360;
+    });
+
+    // avoid overlapping labels stacked on the same side: enforce a minimum vertical gap
+    var MIN_GAP = 34;
+    [-1, 1].forEach(function (side) {
+      var group = segs.filter(function (s) { return s.side === side; }).sort(function (a, b) { return a.hy - b.hy; });
+      for (var i = 1; i < group.length; i++) {
+        if (group[i].hy - group[i - 1].hy < MIN_GAP) group[i].hy = group[i - 1].hy + MIN_GAP;
+      }
+      // re-center the group around its original vertical middle so it doesn't drift toward one edge
+      if (group.length) {
+        var shift = ((group[0].hy + group[group.length - 1].hy) / 2) - ((group[0].ky + group[group.length - 1].ky) / 2);
+        group.forEach(function (s) { s.hy -= shift; });
+      }
+    });
+
+    var labelsHtml = segs.map(function (s) {
+      var hx = s.kx + s.side * 16;
+      arcs += '<polyline points="' + s.ex + ',' + s.ey + ' ' + s.kx + ',' + s.ky + ' ' + hx + ',' + s.hy + '" fill="none" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></polyline>';
+      var anchorX = cx + s.side * 132;
+      var posStyle = s.side === 1
+        ? 'left:' + (anchorX / VBW) * 100 + '%; text-align:left;'
+        : 'right:' + ((VBW - anchorX) / VBW) * 100 + '%; text-align:right;';
+      return '<div class="donut-label-item" style="top:' + (s.hy / VBH) * 100 + '%; ' + posStyle + '">' +
+        '<div class="dl-title">' + escapeHtml(s.label) + ' ' + s.pct + '%</div>' +
+        '<div class="dl-amount">' + fmtMoney(s.amt) + '</div></div>';
+    }).join('');
+    document.getElementById('priority-donut').innerHTML = arcs;
+    document.getElementById('priority-labels').innerHTML = labelsHtml;
+    document.getElementById('priority-center').innerHTML =
+      '<div class="donut-center-value">' + fmtMillion(grandTotal) + '</div><div class="donut-center-label">รวมมูลค่าค้างตัด</div>';
+    document.getElementById('priority-legend').innerHTML = priorityLabels.map(function (label) {
+      return '<span class="legend-item"><span class="legend-dot" style="background:' + colorForPriority(label) + '"></span>' + escapeHtml(label) + '</span>';
+    }).join('');
+    document.getElementById('priority-detail-table').innerHTML = priorityLabels.map(function (label) {
+      var m = priorityMetrics[label];
+      return '<tr><td><span class="legend-dot" style="background:' + colorForPriority(label) + '"></span>' + escapeHtml(label) + '</td>' +
+        '<td class="num">' + fmtInt(m.so_qty) + '</td>' +
+        '<td class="num">' + fmtMoney(m.so_amount) + '</td>' +
+        '<td class="num">' + fmtInt(m.remain_reserve_qty) + '</td>' +
+        '<td class="num">' + fmtMoney(m.remain_reserve_amount) + '</td></tr>';
+    }).join('');
+
+    // -- by branch (bar then value, ranked) --
+    var branchMetrics = groupMetrics(filtered, 'branch');
+    var branchTotals = {};
+    Object.keys(branchMetrics).forEach(function (k) { branchTotals[k] = branchMetrics[k].remain_reserve_amount; });
+    var branchLabels = Object.keys(branchTotals).sort(function (a, b) { return branchTotals[b] - branchTotals[a]; });
+    var branchMax = branchLabels.length ? branchTotals[branchLabels[0]] : 0;
+    document.getElementById('branch-bars').innerHTML = branchLabels.map(function (label, i) {
+      var amt = branchTotals[label];
+      var pct = grandTotal > 0 ? Math.round((amt / grandTotal) * 100) : 0;
+      var widthPct = branchMax > 0 ? (amt / branchMax) * 100 : 0;
+      return '<div class="branch-row">' +
+        '<span class="bar-label" title="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + widthPct + '%;background:' + colorForRank(i, branchLabels.length) + '"></span></span>' +
+        '<span class="bar-value">' + fmtMoney(amt) + '</span>' +
+        '<span class="branch-pct">' + pct + '%</span>' +
+        '</div>';
+    }).join('');
+    document.getElementById('branch-detail-table').innerHTML = branchLabels.map(function (label) {
+      var m = branchMetrics[label];
+      return '<tr><td>' + escapeHtml(label) + '</td>' +
+        '<td class="num">' + fmtInt(m.so_qty) + '</td>' +
+        '<td class="num">' + fmtMoney(m.so_amount) + '</td>' +
+        '<td class="num">' + fmtInt(m.remain_reserve_qty) + '</td>' +
+        '<td class="num">' + fmtMoney(m.remain_reserve_amount) + '</td></tr>';
+    }).join('');
+
+    state.detailData = {
+      aging: { labelHeader: 'ช่วงอายุ', labels: agingLabels, metrics: agingMetrics },
+      priority: { labelHeader: 'Delivery Priority', labels: priorityLabels, metrics: priorityMetrics },
+      branch: { labelHeader: 'สาขา', labels: branchLabels, metrics: branchMetrics }
+    };
+  }
+
+  function detailSheetData(kind) {
+    var data = state.detailData && state.detailData[kind];
+    if (!data) return null;
+    var headers = [data.labelHeader, 'จำนวนใน SO', 'มูลค่าใน SO', 'จำนวนค้างตัด', 'มูลค่าค้างตัด'];
+    var rows = data.labels.map(function (label) {
+      var m = data.metrics[label];
+      return [label, m.so_qty, Math.round(m.so_amount), m.remain_reserve_qty, Math.round(m.remain_reserve_amount)];
+    });
+    return { headers: headers, rows: rows };
+  }
+
+  function renderKPIs(filtered) {
+    var soQty = filtered.reduce(function (s, r) { return s + r.so_qty; }, 0);
+    var soAmount = filtered.reduce(function (s, r) { return s + r.so_amount; }, 0);
+    var reserveQty = filtered.reduce(function (s, r) { return s + r.remain_reserve_qty; }, 0);
+    var reserveAmount = filtered.reduce(function (s, r) { return s + r.remain_reserve_amount; }, 0);
+    document.getElementById('kpi-so-qty').textContent = fmtInt(soQty);
+    document.getElementById('kpi-so-amount').textContent = fmtMoney(soAmount);
+    document.getElementById('kpi-reserve-qty').textContent = fmtInt(reserveQty);
+    document.getElementById('kpi-reserve-amount').textContent = fmtMoney(reserveAmount);
+  }
+
+  var DETAIL_PREVIEW_ROWS = 10;
+
+  function renderTableHead() {
+    document.getElementById('table-head-row').innerHTML = DETAIL_COLUMNS.map(function (col) {
+      return '<th data-sort="' + col.key + '"' + (col.numeric ? ' class="num-cell"' : '') + '>' + escapeHtml(col.label) + '</th>';
+    }).join('');
+  }
+
+  function detailCellHtml(col, r) {
+    var v = r[col.key];
+    if (col.pill === 'aging') {
+      return '<td><span class="pill"><span class="dot" style="background:' + statusColor(agingStatus(v)) + '"></span>' + escapeHtml(v) + '</span></td>';
+    }
+    if (col.pill === 'priority') {
+      return '<td><span class="pill"><span class="dot" style="background:' + colorForPriority(v) + '"></span>' + escapeHtml(v) + '</span></td>';
+    }
+    if (col.numeric) {
+      var formatted = col.fmt === 'money2' ? fmtMoney2(v) : fmtInt(v);
+      return '<td class="num-cell">' + formatted + '</td>';
+    }
+    return '<td>' + escapeHtml(v) + '</td>';
+  }
+
+  function renderTable(filtered) {
+    var tbody = document.getElementById('table-body');
+    document.getElementById('table-count-note').textContent =
+      filtered.length ? 'แสดง ' + fmtInt(Math.min(DETAIL_PREVIEW_ROWS, filtered.length)) + ' จาก ' + fmtInt(filtered.length) + ' รายการ' : '';
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="' + DETAIL_COLUMNS.length + '">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtered.slice(0, DETAIL_PREVIEW_ROWS).map(function (r) {
+      return '<tr>' + DETAIL_COLUMNS.map(function (col) { return detailCellHtml(col, r); }).join('') + '</tr>';
+    }).join('');
+  }
+
+  function orderDetailSheetData() {
+    var filtered = getFiltered();
+    var headers = DETAIL_COLUMNS.map(function (col) { return col.label; });
+    var rows = filtered.map(function (r) {
+      return DETAIL_COLUMNS.map(function (col) {
+        var v = r[col.key];
+        return col.numeric ? (col.fmt === 'money2' ? Math.round(v * 100) / 100 : v) : v;
+      });
+    });
+    return { headers: headers, rows: rows };
+  }
+
+  function downloadAllDetail() {
+    if (typeof XLSX === 'undefined') {
+      alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่');
+      return;
+    }
+    var wb = XLSX.utils.book_new();
+    function addSheet(name, sheet) {
+      if (!sheet) return;
+      var aoa = [sheet.headers].concat(sheet.rows);
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      XLSX.utils.book_append_sheet(wb, ws, name);
+    }
+    addSheet('ช่วงอายุ SO', detailSheetData('aging'));
+    addSheet('Delivery Priority', detailSheetData('priority'));
+    addSheet('สาขา', detailSheetData('branch'));
+    addSheet('Order Detail', orderDetailSheetData());
+    XLSX.writeFile(wb, 'Order Reserve Aging 07-2026.xlsx');
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---------- Wiring ----------
+  function wireEvents() {
+    document.getElementById('search-input').addEventListener('input', function (e) {
+      state.search = e.target.value;
+      renderAll();
+    });
+    document.querySelectorAll('th[data-sort]').forEach(function (th) {
+      th.addEventListener('click', function () {
+        var field = th.getAttribute('data-sort');
+        if (state.sortField === field) {
+          state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          state.sortField = field;
+          state.sortDir = 'desc';
+        }
+        document.querySelectorAll('th[data-sort] .sort-arrow').forEach(function (a) { a.remove(); });
+        th.insertAdjacentHTML('beforeend', '<span class="sort-arrow">' + (state.sortDir === 'asc' ? '▲' : '▼') + '</span>');
+        renderAll();
+      });
+    });
+    var btnPrint = document.getElementById('btn-print');
+    if (btnPrint) btnPrint.addEventListener('click', function () { window.print(); });
+    var btnRefresh = document.getElementById('btn-refresh');
+    if (btnRefresh) btnRefresh.addEventListener('click', refreshData);
+
+    document.querySelectorAll('.view-toggle button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var card = btn.closest('.overview-card');
+        var view = btn.getAttribute('data-view');
+        card.querySelectorAll('.view-toggle button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        card.querySelector('.card-view-chart').style.display = view === 'chart' ? 'flex' : 'none';
+        card.querySelector('.card-view-detail').style.display = view === 'detail' ? 'flex' : 'none';
+      });
+    });
+    document.getElementById('btn-download-all').addEventListener('click', downloadAllDetail);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    renderTableHead();
+    wireEvents();
+    if (window.tableau && tableau.extensions) {
+      tableau.extensions.initializeAsync().catch(function (err) { console.warn('Tableau init:', err); });
+    }
+    loadMockData();
+  });
+})();
+</script>
