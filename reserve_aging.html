@@ -409,7 +409,10 @@
     DATASET_ID: 'tableau',
     TABLE_ID: 'ds_vdo_order_reserve_aging',
     OAUTH_SCOPE: 'https://www.googleapis.com/auth/bigquery.readonly',
-    MAX_ROWS: 20000
+    MAX_ROWS: 20000,
+    // ชื่อ worksheet ใน Tableau dashboard เดียวกันที่ลาก field ทั้งหมดของ ds_vdo_order_reserve_aging ไว้
+    // extension จะอ่านข้อมูลจาก worksheet นี้โดยตรง (ผ่าน Tableau Extensions API) แทนการต่อ BigQuery เอง
+    WORKSHEET_NAME: 'Reserve'
   };
 
   var BQ_SQL =
@@ -574,6 +577,58 @@
   function loadMockData() {
     setStatusPill('mock', 'ข้อมูลตัวอย่าง (Mock)');
     setData(buildMockData(), 'mock');
+  }
+
+  // ---------- Tableau worksheet (primary data source) ----------
+  function normalizeFieldKey(s) {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  var WORKSHEET_FIELD_LOOKUP = {};
+  DETAIL_COLUMNS.forEach(function (col) { WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.key)] = col.key; });
+
+  function findWorksheet(name) {
+    var dashboard = tableau.extensions.dashboardContent.dashboard;
+    var wanted = name.trim().toLowerCase();
+    var found = dashboard.worksheets.filter(function (w) { return w.name.trim().toLowerCase() === wanted; });
+    return found.length ? found[0] : null;
+  }
+
+  var worksheetListenerAttached = false;
+
+  function loadFromWorksheet() {
+    var ws = findWorksheet(CONFIG.WORKSHEET_NAME);
+    if (!ws) {
+      console.warn('ไม่พบ worksheet ชื่อ "' + CONFIG.WORKSHEET_NAME + '" ในแดชบอร์ดนี้ ใช้ข้อมูลตัวอย่างแทน');
+      loadMockData();
+      return;
+    }
+    setStatusPill('loading', 'กำลังดึงข้อมูลจาก Tableau...');
+    ws.getSummaryDataAsync({ ignoreSelection: true, maxRows: 0 })
+      .then(function (dataTable) {
+        var colKeys = dataTable.columns.map(function (col) { return WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.fieldName)] || null; });
+        var rows = dataTable.data.map(function (rowCells) {
+          var obj = {};
+          rowCells.forEach(function (cell, i) {
+            var key = colKeys[i];
+            if (!key) return;
+            obj[key] = NUMERIC_FIELDS.indexOf(key) >= 0 ? Number(cell.value) || 0 : cell.value;
+          });
+          return obj;
+        });
+        setStatusPill('live', 'Live (Tableau: ' + CONFIG.WORKSHEET_NAME + ')');
+        setData(rows, 'live');
+
+        if (!worksheetListenerAttached) {
+          worksheetListenerAttached = true;
+          ws.addEventListener(tableau.TableauEventType.SummaryDataChanged, loadFromWorksheet);
+        }
+      })
+      .catch(function (err) {
+        console.error(err);
+        setStatusPill('error', 'ดึงข้อมูลจาก worksheet ไม่สำเร็จ: ' + err.message);
+        loadMockData();
+      });
   }
 
   // ---------- BigQuery (OAuth) ----------
@@ -1004,9 +1059,15 @@
     renderTableHead();
     wireEvents();
     if (window.tableau && tableau.extensions) {
-      tableau.extensions.initializeAsync().catch(function (err) { console.warn('Tableau init:', err); });
+      tableau.extensions.initializeAsync()
+        .then(loadFromWorksheet)
+        .catch(function (err) {
+          console.warn('Tableau init failed, using mock data:', err);
+          loadMockData();
+        });
+    } else {
+      loadMockData();
     }
-    loadMockData();
   });
 })();
 </script>
