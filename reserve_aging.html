@@ -178,8 +178,14 @@
     cursor: pointer;
   }
   .download-all-btn:hover { background: var(--header-tab-bg-hover); }
-  .overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
-  @media (max-width: 1100px) { .overview-grid { grid-template-columns: 1fr; } }
+  .overview-grid {
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "branch aging" "branch priority";
+    gap: 16px; align-items: start;
+  }
+  .overview-card[data-card="branch"] { grid-area: branch; }
+  .overview-card[data-card="aging"] { grid-area: aging; }
+  .overview-card[data-card="priority"] { grid-area: priority; }
+  @media (max-width: 1100px) { .overview-grid { grid-template-columns: 1fr; grid-template-areas: "branch" "aging" "priority"; } }
   .overview-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; min-width: 0; }
   .overview-card > * { min-width: 0; }
   .chart-card-title { font-size: 13px; font-weight: 700; margin: 0 0 12px; }
