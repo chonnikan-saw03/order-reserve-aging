@@ -1090,11 +1090,14 @@
       tableau.extensions.initializeAsync()
         .then(loadFromWorksheet)
         .catch(function (err) {
-          console.warn('Tableau init failed, using mock data:', err);
-          loadMockData();
+          var msg = 'เริ่มต้น Tableau extension ไม่สำเร็จ: ' + (err && err.message ? err.message : err);
+          console.warn(msg);
+          setStatusPill('error', msg);
+          setData(buildMockData(), 'mock');
         });
     } else {
-      loadMockData();
+      setStatusPill('error', 'ไม่พบ Tableau Extensions API (window.tableau) — หน้านี้ไม่ได้ถูกเปิดในฐานะ Tableau extension');
+      setData(buildMockData(), 'mock');
     }
   });
 })();
