@@ -711,11 +711,30 @@
           return;
         }
         var rows = parsed.rows;
-        var vendorName = singleVendorName(rows);
-        if (vendorName) {
-          document.getElementById('topbar-subtitle').textContent = vendorName;
+        // เช็คเจาะจงว่า 4 field ตัวเลขหลัก (so_qty/so_amount/remain_reserve_qty/remain_reserve_amount)
+        // จับคู่ได้ครบไหม — เผื่อกรณี dimension จับคู่ได้ปกติแต่ตัวเลขจับไม่ได้ (KPI ขึ้น 0 หมดทั้งที่ไม่ใช่ Mock)
+        var matchedKeys = {};
+        Object.keys(WORKSHEET_FIELD_LOOKUP).forEach(function (k) {
+          if (parsed.captions.some(function (cap) { return normalizeFieldKey(cap) === k; })) {
+            matchedKeys[WORKSHEET_FIELD_LOOKUP[k]] = true;
+          }
+        });
+        var missingMeasures = NUMERIC_FIELDS.filter(function (f) { return !matchedKeys[f]; });
+        if (rows.length === 0 || missingMeasures.length > 0) {
+          var parts = [];
+          if (rows.length === 0) parts.push('ไม่มีข้อมูล (0 แถว)');
+          if (missingMeasures.length > 0) parts.push('จับคู่คอลัมน์ตัวเลขไม่ได้: ' + missingMeasures.join(', '));
+          var diagMsg = 'เชื่อมต่อ worksheet "' + CONFIG.WORKSHEET_NAME + '" สำเร็จ แต่ ' + parts.join(' และ ') +
+            ' (คอลัมน์ที่เจอทั้งหมด: ' + parsed.captions.join(', ') + ')';
+          console.warn(diagMsg);
+          setStatusPill('error', diagMsg);
         } else {
-          setStatusPill('live', 'Live (Tableau: ' + CONFIG.WORKSHEET_NAME + ')');
+          var vendorName = singleVendorName(rows);
+          if (vendorName) {
+            document.getElementById('topbar-subtitle').textContent = vendorName;
+          } else {
+            setStatusPill('live', 'Live (Tableau: ' + CONFIG.WORKSHEET_NAME + ')');
+          }
         }
         setData(rows, 'live');
         loadAuxWorksheets();
