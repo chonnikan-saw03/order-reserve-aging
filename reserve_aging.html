@@ -961,11 +961,10 @@
     var agingLabels = Object.keys(agingMetrics).sort(function (a, b) {
       return AGING_TIER_ORDER.indexOf(a.charAt(0)) - AGING_TIER_ORDER.indexOf(b.charAt(0));
     });
-    var agingMax = Math.max.apply(null, agingLabels.map(function (l) { return agingTotals[l]; }).concat([0]));
     document.getElementById('aging-bars').innerHTML = agingLabels.map(function (label) {
       var amt = agingTotals[label];
       var pct = grandTotal > 0 ? Math.round((amt / grandTotal) * 100) : 0;
-      var widthPct = agingMax > 0 ? (amt / agingMax) * 100 : 0;
+      var widthPct = grandTotal > 0 ? (amt / grandTotal) * 100 : 0;
       var color = statusColor(agingStatus(label));
       return '<div class="pay-row">' +
         '<div class="pay-row-top">' +
@@ -1065,11 +1064,10 @@
     var branchTotals = {};
     Object.keys(branchMetrics).forEach(function (k) { branchTotals[k] = branchMetrics[k].remain_reserve_amount; });
     var branchLabels = Object.keys(branchTotals).sort(function (a, b) { return branchTotals[b] - branchTotals[a]; });
-    var branchMax = branchLabels.length ? branchTotals[branchLabels[0]] : 0;
     document.getElementById('branch-bars').innerHTML = branchLabels.map(function (label, i) {
       var amt = branchTotals[label];
       var pct = grandTotal > 0 ? Math.round((amt / grandTotal) * 100) : 0;
-      var widthPct = branchMax > 0 ? (amt / branchMax) * 100 : 0;
+      var widthPct = grandTotal > 0 ? (amt / grandTotal) * 100 : 0;
       return '<div class="pay-row">' +
         '<div class="pay-row-top">' +
         '<span class="pay-row-label" title="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>' +
