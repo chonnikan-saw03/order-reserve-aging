@@ -182,9 +182,9 @@
   @media (max-width: 1100px) { .overview-grid { grid-template-columns: 1fr; } }
   .overview-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; min-width: 0; }
   .overview-card > * { min-width: 0; }
-  .chart-card-title { font-size: 13px; font-weight: 700; margin: 0 0 12px; }
+  .chart-card-title { font-size: 13px; font-weight: 700; margin: 0; }
 
-  .card-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 10px 0 14px; }
+  .card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 14px; }
   .view-toggle-btn {
     padding: 6px 14px; border: 1px solid var(--border); background: var(--chip-bg); border-radius: 8px;
     font-size: 11px; font-weight: 700; color: var(--accent); cursor: pointer; font-family: inherit;
@@ -279,8 +279,8 @@
     <section id="overview-section" style="scroll-margin-top:16px">
       <div class="overview-grid">
         <div class="overview-card" data-card="branch">
-          <p class="chart-card-title">มูลค่าค้างตัดรายสาขา</p>
           <div class="card-toolbar">
+            <p class="chart-card-title">มูลค่าค้างตัดรายสาขา</p>
             <button type="button" class="view-toggle-btn" data-view="chart">View Table</button>
           </div>
           <div class="card-view card-view-chart">
@@ -296,8 +296,8 @@
           </div>
         </div>
         <div class="overview-card" data-card="aging">
-          <p class="chart-card-title">มูลค่าค้างตัดราย Aging Tier</p>
           <div class="card-toolbar">
+            <p class="chart-card-title">มูลค่าค้างตัดราย Aging Tier</p>
             <button type="button" class="view-toggle-btn" data-view="chart">View Table</button>
           </div>
           <div class="card-view card-view-chart">
@@ -313,8 +313,8 @@
           </div>
         </div>
         <div class="overview-card" data-card="priority">
-          <p class="chart-card-title">มูลค่าค้างตัดราย Delivery Priority</p>
           <div class="card-toolbar">
+            <p class="chart-card-title">มูลค่าค้างตัดราย Delivery Priority</p>
             <button type="button" class="view-toggle-btn" data-view="chart">View Table</button>
           </div>
           <div class="card-view card-view-chart">
