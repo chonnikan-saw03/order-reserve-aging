@@ -445,6 +445,7 @@
   function fmtMoney(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString('th-TH'); }
   function fmtMillion(n) { return '฿' + ((Number(n) || 0) / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M'; }
   function fmtMoney2(n) { return '฿' + (Number(n) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtNum(n) { return Math.round(Number(n) || 0).toLocaleString('th-TH'); }
   function fmtTimestamp(d) {
     try {
       return d.toLocaleString('th-TH-u-ca-buddhist', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -973,9 +974,9 @@
       var m = agingMetrics[label];
       return '<tr><td><span class="legend-dot" style="background:' + statusColor(agingStatus(label)) + '"></span>' + escapeHtml(label) + '</td>' +
         '<td class="num">' + fmtInt(m.so_qty) + '</td>' +
-        '<td class="num">' + fmtMoney(m.so_amount) + '</td>' +
+        '<td class="num">' + fmtNum(m.so_amount) + '</td>' +
         '<td class="num">' + fmtInt(m.remain_reserve_qty) + '</td>' +
-        '<td class="num">' + fmtMoney(m.remain_reserve_amount) + '</td></tr>';
+        '<td class="num">' + fmtNum(m.remain_reserve_amount) + '</td></tr>';
     }).join('');
 
     // -- by delivery priority (donut with outside labels) --
@@ -1048,9 +1049,9 @@
       var m = priorityMetrics[label];
       return '<tr><td><span class="legend-dot" style="background:' + colorForPriority(label) + '"></span>' + escapeHtml(label) + '</td>' +
         '<td class="num">' + fmtInt(m.so_qty) + '</td>' +
-        '<td class="num">' + fmtMoney(m.so_amount) + '</td>' +
+        '<td class="num">' + fmtNum(m.so_amount) + '</td>' +
         '<td class="num">' + fmtInt(m.remain_reserve_qty) + '</td>' +
-        '<td class="num">' + fmtMoney(m.remain_reserve_amount) + '</td></tr>';
+        '<td class="num">' + fmtNum(m.remain_reserve_amount) + '</td></tr>';
     }).join('');
 
     // -- by branch (bar then value, ranked) --
@@ -1076,9 +1077,9 @@
       var m = branchMetrics[label];
       return '<tr><td>' + escapeHtml(label) + '</td>' +
         '<td class="num">' + fmtInt(m.so_qty) + '</td>' +
-        '<td class="num">' + fmtMoney(m.so_amount) + '</td>' +
+        '<td class="num">' + fmtNum(m.so_amount) + '</td>' +
         '<td class="num">' + fmtInt(m.remain_reserve_qty) + '</td>' +
-        '<td class="num">' + fmtMoney(m.remain_reserve_amount) + '</td></tr>';
+        '<td class="num">' + fmtNum(m.remain_reserve_amount) + '</td></tr>';
     }).join('');
 
     state.detailData = {
