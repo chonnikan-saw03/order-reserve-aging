@@ -617,6 +617,7 @@
       // ข้อมูลที่ได้จะเป็นแบบ long/pivoted: 1 row ต่อ (ชุด dimension, 1 measure) ต้อง group รวมกลับเป็น 1 row ต่อ 1 รายการ
       var groups = {};
       var order = [];
+      var seenMeasureNames = {};
       dataTable.data.forEach(function (rowCells) {
         var dimKeyParts = [];
         var partial = {};
@@ -631,14 +632,21 @@
           groups[groupKey] = partial;
           order.push(groupKey);
         }
-        var measureKey = WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(rowCells[measureNamesIdx].value)];
+        // ลอง match จาก .value ก่อน ถ้าไม่เจอลองจาก .formattedValue ด้วย เพราะบางที measure
+        // เป็น calculated field ที่ .value เป็นชื่อ field ภายใน (เช่น AGG(Calculation_xxx))
+        // แต่ .formattedValue จะเป็นชื่อ/alias ที่ผู้ใช้เห็นจริงแทน
+        var mnCell = rowCells[measureNamesIdx];
+        var sampleLabel = mnCell.value + (mnCell.formattedValue && mnCell.formattedValue !== mnCell.value ? ' (' + mnCell.formattedValue + ')' : '');
+        seenMeasureNames[sampleLabel] = true;
+        var measureKey = WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(mnCell.value)] ||
+          WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(mnCell.formattedValue)];
         if (measureKey) {
           var v = rowCells[measureValuesIdx].value;
           groups[groupKey][measureKey] = NUMERIC_FIELDS.indexOf(measureKey) >= 0 ? (Number(v) || 0) : v;
         }
       });
       var pivotedRows = order.map(function (k) { return groups[k]; });
-      return { rows: pivotedRows, matchedCount: matchedCount, captions: captions };
+      return { rows: pivotedRows, matchedCount: matchedCount, captions: captions, measureNameSamples: Object.keys(seenMeasureNames) };
     }
 
     var rows = dataTable.data.map(function (rowCells) {
@@ -751,6 +759,9 @@
           if (missingMeasures.length > 0) parts.push('จับคู่คอลัมน์ตัวเลขไม่ได้: ' + missingMeasures.join(', '));
           var diagMsg = 'เชื่อมต่อ worksheet "' + CONFIG.WORKSHEET_NAME + '" สำเร็จ แต่ ' + parts.join(' และ ') +
             ' (คอลัมน์ที่เจอทั้งหมด: ' + parsed.captions.join(', ') + ')';
+          if (parsed.measureNameSamples && parsed.measureNameSamples.length) {
+            diagMsg += ' [ค่าใน Measure Names ที่เจอ: ' + parsed.measureNameSamples.join(' | ') + ']';
+          }
           console.warn(diagMsg);
           setStatusPill('error', diagMsg);
         } else {
