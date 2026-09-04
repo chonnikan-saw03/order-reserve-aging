@@ -614,6 +614,43 @@
   function parseWorksheetTable(dataTable) {
     var colKeys = dataTable.columns.map(function (col) { return WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.fieldName)] || null; });
     var matchedCount = colKeys.filter(function (k) { return k; }).length;
+    var captions = dataTable.columns.map(function (col) { return col.fieldName; });
+    var measureNamesIdx = -1, measureValuesIdx = -1;
+    dataTable.columns.forEach(function (col, i) {
+      var norm = normalizeFieldKey(col.fieldName);
+      if (norm === 'measurenames') measureNamesIdx = i;
+      if (norm === 'measurevalues') measureValuesIdx = i;
+    });
+
+    if (measureNamesIdx >= 0 && measureValuesIdx >= 0) {
+      // worksheet ใช้ "Measure Names" / "Measure Values" (วาง measure หลายตัวไว้บน shelf เดียวกัน)
+      // ข้อมูลที่ได้จะเป็นแบบ long/pivoted: 1 row ต่อ (ชุด dimension, 1 measure) ต้อง group รวมกลับเป็น 1 row ต่อ 1 รายการ
+      var groups = {};
+      var order = [];
+      dataTable.data.forEach(function (rowCells) {
+        var dimKeyParts = [];
+        var partial = {};
+        rowCells.forEach(function (cell, i) {
+          if (i === measureNamesIdx || i === measureValuesIdx) return;
+          var key = colKeys[i];
+          if (key) partial[key] = cell.value;
+          dimKeyParts.push(cell.value);
+        });
+        var groupKey = dimKeyParts.join('');
+        if (!Object.prototype.hasOwnProperty.call(groups, groupKey)) {
+          groups[groupKey] = partial;
+          order.push(groupKey);
+        }
+        var measureKey = WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(rowCells[measureNamesIdx].value)];
+        if (measureKey) {
+          var v = rowCells[measureValuesIdx].value;
+          groups[groupKey][measureKey] = NUMERIC_FIELDS.indexOf(measureKey) >= 0 ? (Number(v) || 0) : v;
+        }
+      });
+      var pivotedRows = order.map(function (k) { return groups[k]; });
+      return { rows: pivotedRows, matchedCount: matchedCount, captions: captions };
+    }
+
     var rows = dataTable.data.map(function (rowCells) {
       var obj = {};
       rowCells.forEach(function (cell, i) {
@@ -623,7 +660,7 @@
       });
       return obj;
     });
-    return { rows: rows, matchedCount: matchedCount, captions: dataTable.columns.map(function (col) { return col.fieldName; }) };
+    return { rows: rows, matchedCount: matchedCount, captions: captions };
   }
 
   var worksheetListenerAttached = false;
@@ -713,13 +750,11 @@
         var rows = parsed.rows;
         // เช็คเจาะจงว่า 4 field ตัวเลขหลัก (so_qty/so_amount/remain_reserve_qty/remain_reserve_amount)
         // จับคู่ได้ครบไหม — เผื่อกรณี dimension จับคู่ได้ปกติแต่ตัวเลขจับไม่ได้ (KPI ขึ้น 0 หมดทั้งที่ไม่ใช่ Mock)
-        var matchedKeys = {};
-        Object.keys(WORKSHEET_FIELD_LOOKUP).forEach(function (k) {
-          if (parsed.captions.some(function (cap) { return normalizeFieldKey(cap) === k; })) {
-            matchedKeys[WORKSHEET_FIELD_LOOKUP[k]] = true;
-          }
+        // เช็คจาก rows ที่ parse ออกมาจริง (ไม่ใช่จาก captions ตรงๆ) เพราะ worksheet ที่ใช้
+        // Measure Names/Measure Values จะไม่มีชื่อคอลัมน์ so_qty ฯลฯ ตรงๆ ให้เทียบ
+        var missingMeasures = NUMERIC_FIELDS.filter(function (f) {
+          return !rows.some(function (r) { return Object.prototype.hasOwnProperty.call(r, f); });
         });
-        var missingMeasures = NUMERIC_FIELDS.filter(function (f) { return !matchedKeys[f]; });
         if (rows.length === 0 || missingMeasures.length > 0) {
           var parts = [];
           if (rows.length === 0) parts.push('ไม่มีข้อมูล (0 แถว)');
