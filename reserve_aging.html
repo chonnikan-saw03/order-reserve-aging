@@ -444,8 +444,8 @@
   function fmtInt(n) { return Math.round(Number(n) || 0).toLocaleString('th-TH'); }
   function fmtMoney(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString('th-TH'); }
   function fmtMillion(n) { return '฿' + ((Number(n) || 0) / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M'; }
-  function fmtMoney2(n) { return '฿' + (Number(n) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fmtNum(n) { return Math.round(Number(n) || 0).toLocaleString('th-TH'); }
+  function fmtNum2(n) { return (Number(n) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fmtTimestamp(d) {
     try {
       return d.toLocaleString('th-TH-u-ca-buddhist', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -964,7 +964,7 @@
       return '<div class="pay-row">' +
         '<div class="pay-row-top">' +
         '<span class="pay-row-label">' + escapeHtml(label) + '</span>' +
-        '<span class="pay-row-value">' + fmtMoney(amt) + '</span>' +
+        '<span class="pay-row-value">' + fmtNum(amt) + '</span>' +
         '<span class="pay-row-badge">' + pct + '%</span>' +
         '</div>' +
         '<span class="pay-row-track"><span class="pay-row-fill" style="width:' + widthPct + '%;background:' + color + '"></span></span>' +
@@ -1067,7 +1067,7 @@
       return '<div class="pay-row">' +
         '<div class="pay-row-top">' +
         '<span class="pay-row-label" title="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>' +
-        '<span class="pay-row-value">' + fmtMoney(amt) + '</span>' +
+        '<span class="pay-row-value">' + fmtNum(amt) + '</span>' +
         '<span class="pay-row-badge">' + pct + '%</span>' +
         '</div>' +
         '<span class="pay-row-track"><span class="pay-row-fill" style="width:' + widthPct + '%;background:' + colorForRank(i, branchLabels.length) + '"></span></span>' +
@@ -1128,7 +1128,7 @@
       return '<td><span class="pill"><span class="dot" style="background:' + colorForPriority(v) + '"></span>' + escapeHtml(v) + '</span></td>';
     }
     if (col.numeric) {
-      var formatted = col.fmt === 'money2' ? fmtMoney2(v) : fmtInt(v);
+      var formatted = col.fmt === 'money2' ? fmtNum2(v) : fmtInt(v);
       return '<td class="num-cell">' + formatted + '</td>';
     }
     return '<td>' + escapeHtml(v) + '</td>';
