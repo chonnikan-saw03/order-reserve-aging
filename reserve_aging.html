@@ -592,11 +592,16 @@
     // Tableau มักแสดงชื่อคอลัมน์ของ measure เป็น "SUM(So Amount)" หรือ "AGG(...)" แทนชื่อ field ตรงๆ
     // ตัด wrapper ของ aggregation function ออกก่อน ค่อย normalize ชื่อ field ข้างในต่อ
     var unwrapped = String(s || '').replace(/^\s*[A-Za-z]+\s*\(([\s\S]*)\)\s*$/, '$1');
-    return unwrapped.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // เก็บทั้งตัวอักษรไทย (฀-๿) และอังกฤษ/ตัวเลขไว้ เพราะบาง field ใน Tableau
+    // ถูกตั้งชื่อ/alias เป็นภาษาไทยตรงๆ (เช่น "จำนวนใน SO") ไม่ใช่ชื่อ field แบบอังกฤษ
+    return unwrapped.toLowerCase().replace(/[^a-z0-9฀-๿]/g, '');
   }
 
   var WORKSHEET_FIELD_LOOKUP = {};
-  DETAIL_COLUMNS.forEach(function (col) { WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.key)] = col.key; });
+  DETAIL_COLUMNS.forEach(function (col) {
+    WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.key)] = col.key;
+    if (col.label) WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.label)] = col.key;
+  });
 
   function findWorksheet(name) {
     var dashboard = tableau.extensions.dashboardContent.dashboard;
