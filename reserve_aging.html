@@ -1179,7 +1179,12 @@
     addSheet('Delivery Priority', detailSheetData('priority'));
     addSheet('สาขา', detailSheetData('branch'));
     addSheet('Order Detail', orderDetailSheetData());
-    XLSX.writeFile(wb, 'Order Reserve Aging 07-2026.xlsx');
+    // ไฟล์นี้คือ order ทั้งหมดที่มีอยู่ ณ ตอนกดโหลด (ไม่มี field วันที่ให้ filter)
+    // ชื่อไฟล์เลยอิงเดือน/ปีตอนกดดาวน์โหลดจริง ไม่ใช่ค่าคงที่
+    var now = new Date();
+    var mm = ('0' + (now.getMonth() + 1)).slice(-2);
+    var yyyy = now.getFullYear();
+    XLSX.writeFile(wb, 'Order Reserve Aging ' + mm + '-' + yyyy + '.xlsx');
   }
 
   function escapeHtml(s) {
