@@ -610,6 +610,16 @@
     ws.getSummaryDataAsync({ ignoreSelection: true, maxRows: 0 })
       .then(function (dataTable) {
         var colKeys = dataTable.columns.map(function (col) { return WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.fieldName)] || null; });
+        var matchedCount = colKeys.filter(function (k) { return k; }).length;
+        if (matchedCount === 0) {
+          var captions = dataTable.columns.map(function (col) { return col.fieldName; }).join(', ');
+          var msg = 'พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" แต่จับคู่ชื่อคอลัมน์ไม่ได้เลย ' +
+            '(คอลัมน์ที่เจอ: ' + (captions || 'ไม่มี') + ') ใช้ข้อมูลตัวอย่างแทน';
+          console.warn(msg);
+          setStatusPill('error', msg);
+          setData(buildMockData(), 'mock');
+          return;
+        }
         var rows = dataTable.data.map(function (rowCells) {
           var obj = {};
           rowCells.forEach(function (cell, i) {
