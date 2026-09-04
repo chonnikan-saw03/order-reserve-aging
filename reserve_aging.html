@@ -599,8 +599,11 @@
   function loadFromWorksheet() {
     var ws = findWorksheet(CONFIG.WORKSHEET_NAME);
     if (!ws) {
-      console.warn('ไม่พบ worksheet ชื่อ "' + CONFIG.WORKSHEET_NAME + '" ในแดชบอร์ดนี้ ใช้ข้อมูลตัวอย่างแทน');
-      loadMockData();
+      var availableNames = tableau.extensions.dashboardContent.dashboard.worksheets.map(function (w) { return w.name; });
+      var msg = 'ไม่พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" (มีอยู่: ' + (availableNames.join(', ') || 'ไม่มี worksheet เลย') + ') ใช้ข้อมูลตัวอย่างแทน';
+      console.warn(msg);
+      setStatusPill('error', msg);
+      setData(buildMockData(), 'mock');
       return;
     }
     setStatusPill('loading', 'กำลังดึงข้อมูลจาก Tableau...');
@@ -627,7 +630,7 @@
       .catch(function (err) {
         console.error(err);
         setStatusPill('error', 'ดึงข้อมูลจาก worksheet ไม่สำเร็จ: ' + err.message);
-        loadMockData();
+        setData(buildMockData(), 'mock');
       });
   }
 
