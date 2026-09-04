@@ -171,10 +171,6 @@
   .pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   /* ---- Overview ---- */
-  .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 700; margin: 0 0 8px; flex-wrap: wrap; }
-  .section-heading-title { display: flex; align-items: center; gap: 8px; }
-  .section-heading .icon { width: 28px; height: 28px; border-radius: 8px; background: var(--chip-bg); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .section-heading .icon svg { width: 15px; height: 15px; }
   .download-all-btn {
     display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
     width: 38px; height: 38px; padding: 0; border-radius: 8px;
@@ -182,7 +178,6 @@
     cursor: pointer;
   }
   .download-all-btn:hover { background: var(--header-tab-bg-hover); }
-  .section-rule { height: 3px; border-radius: 2px; background: var(--accent); opacity: 0.35; margin-bottom: 18px; }
   .overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
   @media (max-width: 1100px) { .overview-grid { grid-template-columns: 1fr; } }
   .overview-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; min-width: 0; }
@@ -282,13 +277,6 @@
     </section>
 
     <section class="card" id="overview-section" style="scroll-margin-top:16px">
-      <h2 class="section-heading">
-        <span class="section-heading-title">
-          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
-          ภาพรวม Order Reserve Aging
-        </span>
-      </h2>
-      <div class="section-rule"></div>
       <div class="overview-grid">
         <div class="overview-card" data-card="branch">
           <p class="chart-card-title">มูลค่าค้างตัดรายสาขา</p>
