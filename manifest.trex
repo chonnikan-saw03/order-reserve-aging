@@ -11,14 +11,11 @@
     <min-api-version>1.9</min-api-version>
     <source-location>
       <!--
-        ตอน dev ให้รัน local static server แล้วชี้ url นี้ไปที่ไฟล์ reserve_aging.html เช่น
-        python -m http.server 8765   (รันในโฟลเดอร์ order-reserve-aging)
-        แล้วเปิด http://localhost:8765/reserve_aging.html ทดสอบใน browser ก่อน จากนั้นค่อย add extension นี้ใน Tableau
-
-        พอ deploy ขึ้น GitHub Pages แล้ว ให้เปลี่ยน url ด้านล่างเป็น
-        https://<github-username>.github.io/<repo-name>/reserve_aging.html
+        โฮสต์ผ่าน GitHub Pages: https://github.com/chonnikan-saw03/order-reserve-aging
+        ถ้าจะกลับไปทดสอบแบบ local ให้รัน python -m http.server 8765 ในโฟลเดอร์นี้
+        แล้วเปลี่ยน url ด้านล่างกลับเป็น http://localhost:8765/reserve_aging.html ชั่วคราว
       -->
-      <url>http://localhost:8765/reserve_aging.html</url>
+      <url>https://chonnikan-saw03.github.io/order-reserve-aging/reserve_aging.html</url>
     </source-location>
     <icon>iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=</icon>
   </dashboard-extension>

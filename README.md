@@ -11,18 +11,19 @@ and shows Order Reserve Aging by branch, aging tier, and delivery priority.
 
 ## Setup
 
-### 1. Host `reserve_aging.html` somewhere with a public HTTPS URL
+### 1. Hosting
 
-Tableau Desktop/Server/Cloud loads the extension from the URL in `manifest.trex`.
-`localhost` only works for local testing in Tableau Desktop on the same machine.
+This repo is served via **GitHub Pages**, already live at:
 
-**Using GitHub Pages (this repo):**
+`https://chonnikan-saw03.github.io/order-reserve-aging/reserve_aging.html`
 
-1. Push this repo to GitHub.
-2. In the repo settings, enable **GitHub Pages** (Settings → Pages → Deploy from a branch → `main` → `/root`).
-3. Once published, the extension will be available at:
-   `https://<your-github-username>.github.io/<repo-name>/reserve_aging.html`
-4. Edit `manifest.trex` and change the `<url>` inside `<source-location>` to that address.
+`manifest.trex` already points there. Tableau Desktop/Server/Cloud loads the extension
+from that URL — no local server needed for normal use.
+
+For local testing, run `python -m http.server 8765` in this folder and temporarily
+change the `<url>` in `manifest.trex` to `http://localhost:8765/reserve_aging.html`.
+Remember to change it back before sharing the dashboard with anyone else, since
+`localhost` only resolves on the machine running the server.
 
 ### 2. Add the extension in Tableau
 
