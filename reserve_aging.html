@@ -123,6 +123,11 @@
 
   /* ---- Main ---- */
   .main { max-width: 1800px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .vendor-line {
+    display: inline-flex; align-items: center; gap: 8px; width: fit-content;
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--chip-bg); font-size: 13px; font-weight: 600; color: var(--text-primary);
+  }
   .card {
     background: var(--surface-1);
     border: 1px solid var(--border);
@@ -256,6 +261,10 @@
   </header>
 
   <main class="main">
+    <div class="vendor-line" id="vendor-line" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7l7-4 7 4v14"/><path d="M13 21v-6h-3v6"/><path d="M8 9h1M8 13h1M15 9h1M15 13h1"/></svg>
+      <span id="vendor-line-text"></span>
+    </div>
     <section class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
@@ -732,7 +741,23 @@
     state.updatedAt = new Date();
     priorityColorMap = {};
     uniqueSorted(rows, 'delivery_priority').forEach(function (v, i) { priorityColorMap[v] = CATEGORICAL_HUES[i % CATEGORICAL_HUES.length]; });
+    renderVendorLine(rows);
     renderAll();
+  }
+
+  function renderVendorLine(rows) {
+    var el = document.getElementById('vendor-line');
+    var vendorIds = uniqueSorted(rows, 'vendor_id');
+    if (vendorIds.length === 1) {
+      var v = rows.filter(function (r) { return r.vendor_id === vendorIds[0]; })[0];
+      el.style.display = 'inline-flex';
+      document.getElementById('vendor-line-text').textContent = v.full_name + ' (รหัส ' + v.vendor_id + ')';
+    } else if (vendorIds.length > 1) {
+      el.style.display = 'inline-flex';
+      document.getElementById('vendor-line-text').textContent = 'หลายผู้ขาย (' + vendorIds.length + ' ราย)';
+    } else {
+      el.style.display = 'none';
+    }
   }
 
   function getFiltered() {
