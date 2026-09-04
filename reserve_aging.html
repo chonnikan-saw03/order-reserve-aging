@@ -188,13 +188,12 @@
   .overview-card > * { min-width: 0; }
   .chart-card-title { font-size: 19px; font-weight: 700; margin: 0 0 12px; }
 
-  .card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 14px; }
-  .view-toggle { display: inline-flex; background: var(--chip-bg); border-radius: 8px; padding: 3px; gap: 2px; }
-  .view-toggle button {
-    padding: 5px 12px; border: none; background: transparent; border-radius: 6px;
-    font-size: 11px; font-weight: 700; color: var(--text-secondary); cursor: pointer; font-family: inherit;
+  .card-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 10px 0 14px; }
+  .view-toggle-btn {
+    padding: 6px 14px; border: 1px solid var(--border); background: var(--chip-bg); border-radius: 8px;
+    font-size: 11px; font-weight: 700; color: var(--accent); cursor: pointer; font-family: inherit;
   }
-  .view-toggle button.active { background: var(--surface-1); color: var(--accent); box-shadow: 0 1px 2px rgba(11,11,11,0.08); }
+  .view-toggle-btn:hover { background: var(--surface-1); }
   .card-view { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .donut-flex-area { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; }
   .card-view > * { min-width: 0; }
@@ -299,10 +298,7 @@
         <div class="overview-card" data-card="branch">
           <p class="chart-card-title">มูลค่าค้างตัดรายสาขา</p>
           <div class="card-toolbar">
-            <div class="view-toggle">
-              <button type="button" class="active" data-view="chart">Summary</button>
-              <button type="button" data-view="detail">Detail</button>
-            </div>
+            <button type="button" class="view-toggle-btn" data-view="chart">View Table</button>
           </div>
           <div class="card-view card-view-chart">
             <div class="branch-header-row"><span></span><span></span><span class="branch-header-label">มูลค่าค้างตัด</span><span class="branch-header-label">% Share</span></div>
@@ -320,10 +316,7 @@
         <div class="overview-card" data-card="aging">
           <p class="chart-card-title">มูลค่าค้างตัดราย Aging Tier</p>
           <div class="card-toolbar">
-            <div class="view-toggle">
-              <button type="button" class="active" data-view="chart">Summary</button>
-              <button type="button" data-view="detail">Detail</button>
-            </div>
+            <button type="button" class="view-toggle-btn" data-view="chart">View Table</button>
           </div>
           <div class="card-view card-view-chart">
             <div class="bar-header-row"><span></span><span></span><span class="branch-header-label">มูลค่าค้างตัด</span><span class="branch-header-label">% Share</span></div>
@@ -341,10 +334,7 @@
         <div class="overview-card" data-card="priority">
           <p class="chart-card-title">มูลค่าค้างตัดราย Delivery Priority</p>
           <div class="card-toolbar">
-            <div class="view-toggle">
-              <button type="button" class="active" data-view="chart">Summary</button>
-              <button type="button" data-view="detail">Detail</button>
-            </div>
+            <button type="button" class="view-toggle-btn" data-view="chart">View Table</button>
           </div>
           <div class="card-view card-view-chart">
             <div class="donut-legend" id="priority-legend"></div>
@@ -1221,13 +1211,14 @@
     var btnRefresh = document.getElementById('btn-refresh');
     if (btnRefresh) btnRefresh.addEventListener('click', refreshData);
 
-    document.querySelectorAll('.view-toggle button').forEach(function (btn) {
+    document.querySelectorAll('.view-toggle-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var card = btn.closest('.overview-card');
-        var view = btn.getAttribute('data-view');
-        card.querySelectorAll('.view-toggle button').forEach(function (b) { b.classList.toggle('active', b === btn); });
-        card.querySelector('.card-view-chart').style.display = view === 'chart' ? 'flex' : 'none';
-        card.querySelector('.card-view-detail').style.display = view === 'detail' ? 'flex' : 'none';
+        var next = btn.getAttribute('data-view') === 'chart' ? 'detail' : 'chart';
+        btn.setAttribute('data-view', next);
+        btn.textContent = next === 'chart' ? 'View Table' : 'View Chart';
+        card.querySelector('.card-view-chart').style.display = next === 'chart' ? 'flex' : 'none';
+        card.querySelector('.card-view-detail').style.display = next === 'detail' ? 'flex' : 'none';
       });
     });
     document.getElementById('btn-download-all').addEventListener('click', downloadAllDetail);
