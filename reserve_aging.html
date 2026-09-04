@@ -295,7 +295,7 @@
           <div class="card-view card-view-detail" style="display:none">
             <div class="mini-table-scroll">
               <table class="mini-table">
-                <thead><tr><th>สาขา</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
+                <thead><tr><th>สาขา</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนชิ้นค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
                 <tbody id="branch-detail-table"></tbody>
               </table>
             </div>
@@ -312,7 +312,7 @@
           <div class="card-view card-view-detail" style="display:none">
             <div class="mini-table-scroll">
               <table class="mini-table">
-                <thead><tr><th>ช่วงอายุ</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
+                <thead><tr><th>ช่วงอายุ</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนชิ้นค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
                 <tbody id="aging-table"></tbody>
               </table>
             </div>
@@ -336,7 +336,7 @@
           <div class="card-view card-view-detail" style="display:none">
             <div class="mini-table-scroll">
               <table class="mini-table">
-                <thead><tr><th>Delivery Priority</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
+                <thead><tr><th>Delivery Priority</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนชิ้นค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
                 <tbody id="priority-detail-table"></tbody>
               </table>
             </div>
@@ -428,7 +428,7 @@
     { key: 'full_name', label: 'full_name' },
     { key: 'so_qty', label: 'จำนวนใน SO', numeric: true, fmt: 'int' },
     { key: 'so_amount', label: 'มูลค่าใน SO', numeric: true, fmt: 'money2' },
-    { key: 'remain_reserve_qty', label: 'จำนวนค้างตัด', numeric: true, fmt: 'int' },
+    { key: 'remain_reserve_qty', label: 'จำนวนชิ้นค้างตัด', numeric: true, fmt: 'int' },
     { key: 'remain_reserve_amount', label: 'มูลค่าค้างตัด', numeric: true, fmt: 'money2' }
   ];
 
@@ -581,6 +581,8 @@
     WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.key)] = col.key;
     if (col.label) WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.label)] = col.key;
   });
+  // เก็บชื่อเดิมไว้จับคู่ด้วย เผื่อ field/alias ฝั่ง Tableau ยังใช้ชื่อเก่าอยู่ (label ที่แสดงผลเปลี่ยนได้อิสระ)
+  WORKSHEET_FIELD_LOOKUP[normalizeFieldKey('จำนวนค้างตัด')] = 'remain_reserve_qty';
 
   function findWorksheet(name) {
     var dashboard = tableau.extensions.dashboardContent.dashboard;
@@ -1096,7 +1098,7 @@
   function detailSheetData(kind) {
     var data = state.detailData && state.detailData[kind];
     if (!data) return null;
-    var headers = [data.labelHeader, 'จำนวนใน SO', 'มูลค่าใน SO', 'จำนวนค้างตัด', 'มูลค่าค้างตัด'];
+    var headers = [data.labelHeader, 'จำนวนใน SO', 'มูลค่าใน SO', 'จำนวนชิ้นค้างตัด', 'มูลค่าค้างตัด'];
     var rows = data.labels.map(function (label) {
       var m = data.metrics[label];
       return [label, m.so_qty, Math.round(m.so_amount), m.remain_reserve_qty, Math.round(m.remain_reserve_amount)];
