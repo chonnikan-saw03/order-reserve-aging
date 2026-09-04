@@ -47,6 +47,34 @@ Remember to change it back before sharing the dashboard with anyone else, since
 5. If the "Reserve" worksheet ever changes (a filter is applied elsewhere in the
    dashboard, for example), the extension picks up the change automatically.
 
+### 3. (Optional) Add summary worksheets for faster/more accurate charts
+
+The three overview charts (by SO aging tier, by branch, by delivery priority)
+normally aggregate their numbers client-side from the row-level "Reserve"
+data. You can instead add three more worksheets, already aggregated by
+Tableau, and the extension will use them automatically when present:
+
+| Worksheet name | Dimension field   | Feeds chart                        |
+|-----------------|-------------------|-------------------------------------|
+| **So Aging**    | `so_aging_tiers`  | มูลค่าค้างตัดราย Aging Tier         |
+| **Branch**      | `branch`          | มูลค่าค้างตัดรายสาขา                |
+| **Delivery**    | `delivery_priority` | มูลค่าค้างตัดราย Delivery Priority |
+
+Each should have its dimension field plus the four measures (`so_qty`,
+`so_amount`, `remain_reserve_qty`, `remain_reserve_amount`) already
+aggregated per dimension value — same field-matching rules as "Reserve"
+(spaces/case ignored). These are entirely optional: if a sheet with a
+matching name isn't found, or its columns don't match, that chart silently
+falls back to computing the numbers from "Reserve" instead — nothing breaks.
+Rename them via `CONFIG.WORKSHEET_AGING` / `WORKSHEET_BRANCH` /
+`WORKSHEET_DELIVERY` near the top of the `<script>` block if you'd rather
+use different worksheet names.
+
+Note: typing in the Detail table's search box temporarily switches those
+three charts back to computing from the filtered "Reserve" rows (since the
+summary worksheets aren't aware of the search box), then switches back to
+the pre-aggregated numbers once the search box is cleared.
+
 ### 3. Connect to BigQuery directly (fallback / alternative)
 
 If you'd rather have the extension query BigQuery itself instead of reading from

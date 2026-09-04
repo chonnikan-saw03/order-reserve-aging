@@ -412,7 +412,12 @@
     MAX_ROWS: 20000,
     // ชื่อ worksheet ใน Tableau dashboard เดียวกันที่ลาก field ทั้งหมดของ ds_vdo_order_reserve_aging ไว้
     // extension จะอ่านข้อมูลจาก worksheet นี้โดยตรง (ผ่าน Tableau Extensions API) แทนการต่อ BigQuery เอง
-    WORKSHEET_NAME: 'Reserve'
+    WORKSHEET_NAME: 'Reserve',
+    // worksheet เสริม (optional) ที่มีข้อมูลสรุปพร้อม aggregate มาแล้วสำหรับแต่ละกราฟ
+    // ถ้าหาไม่เจอใน dashboard extension จะ fallback ไปคำนวณเองจากข้อมูลของ WORKSHEET_NAME แทน
+    WORKSHEET_AGING: 'So Aging',
+    WORKSHEET_BRANCH: 'Branch',
+    WORKSHEET_DELIVERY: 'Delivery'
   };
 
   var BQ_SQL =
@@ -457,7 +462,10 @@
     updatedAt: null,
     search: '',
     sortField: 'remain_reserve_amount',
-    sortDir: 'desc'
+    sortDir: 'desc',
+    // ผลสรุป (metrics ต่อ label) จาก worksheet เสริม (So Aging / Branch / Delivery)
+    // เป็น null ถ้ายังไม่เจอ/ยังไม่โหลด worksheet นั้น -> renderOverview จะ fallback ไปคำนวณจาก rows เอง
+    aux: { aging: null, branch: null, delivery: null }
   };
   var priorityColorMap = {};
 
@@ -594,7 +602,83 @@
     return found.length ? found[0] : null;
   }
 
+  // แปลง dataTable ของ Tableau ให้เป็น rows แบบ { key: value } โดยจับคู่ชื่อคอลัมน์แบบ fuzzy
+  function parseWorksheetTable(dataTable) {
+    var colKeys = dataTable.columns.map(function (col) { return WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.fieldName)] || null; });
+    var matchedCount = colKeys.filter(function (k) { return k; }).length;
+    var rows = dataTable.data.map(function (rowCells) {
+      var obj = {};
+      rowCells.forEach(function (cell, i) {
+        var key = colKeys[i];
+        if (!key) return;
+        obj[key] = NUMERIC_FIELDS.indexOf(key) >= 0 ? Number(cell.value) || 0 : cell.value;
+      });
+      return obj;
+    });
+    return { rows: rows, matchedCount: matchedCount, captions: dataTable.columns.map(function (col) { return col.fieldName; }) };
+  }
+
   var worksheetListenerAttached = false;
+
+  // ---------- Worksheet เสริม (So Aging / Branch / Delivery) ----------
+  // แต่ละอันมี field มิติ (dimension) หลักที่ใช้เป็น label ของกราฟ ส่วนที่เหลือคือ measure ที่ Tableau aggregate มาให้แล้ว
+  var AUX_WORKSHEETS = [
+    { stateKey: 'aging', configKey: 'WORKSHEET_AGING', dimensionField: 'so_aging_tiers' },
+    { stateKey: 'branch', configKey: 'WORKSHEET_BRANCH', dimensionField: 'branch' },
+    { stateKey: 'delivery', configKey: 'WORKSHEET_DELIVERY', dimensionField: 'delivery_priority' }
+  ];
+  var auxListenerAttached = {};
+
+  function loadAuxWorksheet(spec) {
+    var wsName = CONFIG[spec.configKey];
+    var ws = findWorksheet(wsName);
+    if (!ws) {
+      console.warn('ไม่พบ worksheet เสริม "' + wsName + '" ใช้การคำนวณจากข้อมูล Reserve แทนสำหรับกราฟนี้');
+      state.aux[spec.stateKey] = null;
+      renderAll();
+      return;
+    }
+    ws.getSummaryDataAsync({ ignoreSelection: true, maxRows: 0 })
+      .then(function (dataTable) {
+        var parsed = parseWorksheetTable(dataTable);
+        if (parsed.matchedCount === 0 || !colKeysHasDimension(parsed.rows, spec.dimensionField)) {
+          console.warn('worksheet เสริม "' + wsName + '" จับคู่คอลัมน์มิติ (' + spec.dimensionField + ') ไม่ได้ ใช้การคำนวณจากข้อมูล Reserve แทน');
+          state.aux[spec.stateKey] = null;
+          renderAll();
+          return;
+        }
+        var metrics = {};
+        parsed.rows.forEach(function (r) {
+          var label = r[spec.dimensionField];
+          if (!label) return;
+          if (!metrics[label]) metrics[label] = { so_qty: 0, so_amount: 0, remain_reserve_qty: 0, remain_reserve_amount: 0 };
+          metrics[label].so_qty += r.so_qty || 0;
+          metrics[label].so_amount += r.so_amount || 0;
+          metrics[label].remain_reserve_qty += r.remain_reserve_qty || 0;
+          metrics[label].remain_reserve_amount += r.remain_reserve_amount || 0;
+        });
+        state.aux[spec.stateKey] = metrics;
+        renderAll();
+
+        if (!auxListenerAttached[spec.stateKey]) {
+          auxListenerAttached[spec.stateKey] = true;
+          ws.addEventListener(tableau.TableauEventType.SummaryDataChanged, function () { loadAuxWorksheet(spec); });
+        }
+      })
+      .catch(function (err) {
+        console.warn('ดึงข้อมูล worksheet เสริม "' + wsName + '" ไม่สำเร็จ: ' + err.message + ' ใช้การคำนวณจากข้อมูล Reserve แทน');
+        state.aux[spec.stateKey] = null;
+        renderAll();
+      });
+  }
+
+  function colKeysHasDimension(rows, dimensionField) {
+    return rows.some(function (r) { return Object.prototype.hasOwnProperty.call(r, dimensionField); });
+  }
+
+  function loadAuxWorksheets() {
+    AUX_WORKSHEETS.forEach(loadAuxWorksheet);
+  }
 
   function loadFromWorksheet() {
     var ws = findWorksheet(CONFIG.WORKSHEET_NAME);
@@ -609,26 +693,16 @@
     setStatusPill('loading', 'กำลังดึงข้อมูลจาก Tableau...');
     ws.getSummaryDataAsync({ ignoreSelection: true, maxRows: 0 })
       .then(function (dataTable) {
-        var colKeys = dataTable.columns.map(function (col) { return WORKSHEET_FIELD_LOOKUP[normalizeFieldKey(col.fieldName)] || null; });
-        var matchedCount = colKeys.filter(function (k) { return k; }).length;
-        if (matchedCount === 0) {
-          var captions = dataTable.columns.map(function (col) { return col.fieldName; }).join(', ');
+        var parsed = parseWorksheetTable(dataTable);
+        if (parsed.matchedCount === 0) {
           var msg = 'พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" แต่จับคู่ชื่อคอลัมน์ไม่ได้เลย ' +
-            '(คอลัมน์ที่เจอ: ' + (captions || 'ไม่มี') + ') ใช้ข้อมูลตัวอย่างแทน';
+            '(คอลัมน์ที่เจอ: ' + (parsed.captions.join(', ') || 'ไม่มี') + ') ใช้ข้อมูลตัวอย่างแทน';
           console.warn(msg);
           setStatusPill('error', msg);
           setData(buildMockData(), 'mock');
           return;
         }
-        var rows = dataTable.data.map(function (rowCells) {
-          var obj = {};
-          rowCells.forEach(function (cell, i) {
-            var key = colKeys[i];
-            if (!key) return;
-            obj[key] = NUMERIC_FIELDS.indexOf(key) >= 0 ? Number(cell.value) || 0 : cell.value;
-          });
-          return obj;
-        });
+        var rows = parsed.rows;
         var vendorName = singleVendorName(rows);
         if (vendorName) {
           document.getElementById('topbar-subtitle').textContent = vendorName;
@@ -636,6 +710,7 @@
           setStatusPill('live', 'Live (Tableau: ' + CONFIG.WORKSHEET_NAME + ')');
         }
         setData(rows, 'live');
+        loadAuxWorksheets();
 
         if (!worksheetListenerAttached) {
           worksheetListenerAttached = true;
@@ -802,6 +877,14 @@
     return totals;
   }
 
+  // ใช้ metrics ที่ Tableau aggregate มาแล้วจาก worksheet เสริม ถ้ามี (และไม่มีการค้นหาใน search box อยู่)
+  // ไม่งั้น fallback ไปคำนวณเองจาก rows ของ Reserve เหมือนเดิม
+  function pickMetrics(filtered, field, auxKey) {
+    var aux = state.aux[auxKey];
+    if (!state.search && aux && Object.keys(aux).length) return aux;
+    return groupMetrics(filtered, field);
+  }
+
   function groupMetrics(rows, field) {
     var totals = {};
     rows.forEach(function (r) {
@@ -820,10 +903,10 @@
     var grandTotal = filtered.reduce(function (s, r) { return s + r.remain_reserve_amount; }, 0);
 
     // -- by aging tier --
-    var agingMetrics = groupMetrics(filtered, 'so_aging_tiers');
+    var agingMetrics = pickMetrics(filtered, 'so_aging_tiers', 'aging');
     var agingTotals = {};
     Object.keys(agingMetrics).forEach(function (k) { agingTotals[k] = agingMetrics[k].remain_reserve_amount; });
-    var agingLabels = uniqueSorted(filtered, 'so_aging_tiers').sort(function (a, b) {
+    var agingLabels = Object.keys(agingMetrics).sort(function (a, b) {
       return AGING_TIER_ORDER.indexOf(a.charAt(0)) - AGING_TIER_ORDER.indexOf(b.charAt(0));
     });
     var agingMax = Math.max.apply(null, agingLabels.map(function (l) { return agingTotals[l]; }).concat([0]));
@@ -849,10 +932,10 @@
     }).join('');
 
     // -- by delivery priority (donut with outside labels) --
-    var priorityMetrics = groupMetrics(filtered, 'delivery_priority');
+    var priorityMetrics = pickMetrics(filtered, 'delivery_priority', 'delivery');
     var priorityTotals = {};
     Object.keys(priorityMetrics).forEach(function (k) { priorityTotals[k] = priorityMetrics[k].remain_reserve_amount; });
-    var priorityLabels = uniqueSorted(filtered, 'delivery_priority');
+    var priorityLabels = Object.keys(priorityMetrics).sort(function (a, b) { return a.localeCompare(b, 'th'); });
     var VBW = 560, VBH = 300, cx = 280, cy = 150, r = 82, strokeW = 26;
     var circumference = 2 * Math.PI * r;
     var dashOffset = 0, angleDeg = 0;
@@ -924,7 +1007,7 @@
     }).join('');
 
     // -- by branch (bar then value, ranked) --
-    var branchMetrics = groupMetrics(filtered, 'branch');
+    var branchMetrics = pickMetrics(filtered, 'branch', 'branch');
     var branchTotals = {};
     Object.keys(branchMetrics).forEach(function (k) { branchTotals[k] = branchMetrics[k].remain_reserve_amount; });
     var branchLabels = Object.keys(branchTotals).sort(function (a, b) { return branchTotals[b] - branchTotals[a]; });
