@@ -1039,7 +1039,11 @@
     });
 
     var labelsHtml = segs.map(function (s) {
-      var hx = s.kx + s.side * 16;
+      var anchorX = cx + s.side * 132;
+      var LABEL_GAP = 16;
+      // เว้นระยะห่างระหว่างปลายเส้นชี้กับจุดเริ่มข้อความไว้เสมอ (กันเส้นวิ่งเข้าไปชิด/ทับตัวอักษร)
+      var hxRaw = s.kx + s.side * 16;
+      var hx = s.side === 1 ? Math.min(hxRaw, anchorX - LABEL_GAP) : Math.max(hxRaw, anchorX + LABEL_GAP);
       // ปกติชี้เส้นตรงจากขอบวงไปยัง label เลย (เรียบกว่า) แต่ถ้าตำแหน่ง label ถูกขยับ
       // ออกจากมุมธรรมชาติไปมาก (เพราะชนขอบบน/ล่าง หรือชนกับ label ข้างเคียง) ให้หักมุมผ่าน
       // elbow (รัศมีไกลขึ้นที่มุมเดิม) ก่อน จะได้ไม่วิ่งตัดกับเส้นของ segment ข้างๆ
@@ -1048,7 +1052,6 @@
       } else {
         arcs += '<line x1="' + s.ex + '" y1="' + s.ey + '" x2="' + hx + '" y2="' + s.hy + '" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"></line>';
       }
-      var anchorX = cx + s.side * 132;
       var posStyle = s.side === 1
         ? 'left:' + (anchorX / VBW) * 100 + '%; text-align:left;'
         : 'right:' + ((VBW - anchorX) / VBW) * 100 + '%; text-align:right;';
