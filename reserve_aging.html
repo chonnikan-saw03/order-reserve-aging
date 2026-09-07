@@ -226,7 +226,7 @@
   .donut-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(116px, 22cqw); text-align: center; pointer-events: none; }
   .donut-center-value { font-size: clamp(13px, 4.6cqw, 21px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
   .donut-center-label { font-size: clamp(7px, 2.4cqw, 11px); line-height: 1.25; color: var(--text-muted); margin-top: 2px; }
-  .donut-label-item { position: absolute; transform: translateY(-50%); max-width: 140px; font-size: 14px; line-height: 1.3; pointer-events: none; }
+  .donut-label-item { position: absolute; transform: translateY(-50%); max-width: 220px; font-size: 14px; line-height: 1.3; pointer-events: none; white-space: nowrap; }
   .donut-label-item .dl-title { font-weight: 700; color: var(--text-primary); }
   .donut-label-item .dl-amount { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
@@ -1040,7 +1040,7 @@
 
     var labelsHtml = segs.map(function (s) {
       var hx = s.kx + s.side * 16;
-      arcs += '<polyline points="' + s.ex + ',' + s.ey + ' ' + s.kx + ',' + s.ky + ' ' + hx + ',' + s.hy + '" fill="none" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></polyline>';
+      arcs += '<line x1="' + s.ex + '" y1="' + s.ey + '" x2="' + hx + '" y2="' + s.hy + '" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"></line>';
       var anchorX = cx + s.side * 132;
       var posStyle = s.side === 1
         ? 'left:' + (anchorX / VBW) * 100 + '%; text-align:left;'
