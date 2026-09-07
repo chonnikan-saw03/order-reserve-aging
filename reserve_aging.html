@@ -1014,7 +1014,11 @@
       var elbow = r + 58;
       var ex = cx + Math.cos(rad) * edge, ey = cy + Math.sin(rad) * edge;
       var kx = cx + Math.cos(rad) * elbow, ky = cy + Math.sin(rad) * elbow;
-      segs.push({ label: label, amt: amt, pct: pct, side: side, ex: ex, ey: ey, kx: kx, ky: ky, hy: ky });
+      // กันไม่ให้ label ของ segment เล็กๆ ใกล้จุดเริ่มวง (12 นาฬิกา) ไปชนกับ legend ด้านบน
+      // เว้นระยะขอบบน/ล่างไว้พอสำหรับความสูงของ label เอง (2 บรรทัด)
+      var LABEL_EDGE_PAD = 46;
+      var hyClamped = Math.max(LABEL_EDGE_PAD, Math.min(VBH - LABEL_EDGE_PAD, ky));
+      segs.push({ label: label, amt: amt, pct: pct, side: side, ex: ex, ey: ey, kx: kx, ky: ky, hy: hyClamped, hy0: hyClamped });
 
       dashOffset += fullDash;
       angleDeg += frac * 360;
@@ -1029,7 +1033,7 @@
       }
       // re-center the group around its original vertical middle so it doesn't drift toward one edge
       if (group.length) {
-        var shift = ((group[0].hy + group[group.length - 1].hy) / 2) - ((group[0].ky + group[group.length - 1].ky) / 2);
+        var shift = ((group[0].hy + group[group.length - 1].hy) / 2) - ((group[0].hy0 + group[group.length - 1].hy0) / 2);
         group.forEach(function (s) { s.hy -= shift; });
       }
     });
