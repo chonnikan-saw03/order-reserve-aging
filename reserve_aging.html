@@ -750,7 +750,7 @@
           console.warn(diagMsg);
           setStatusPill('error', diagMsg);
         } else {
-          setStatusPill('live', 'Live (Tableau: ' + CONFIG.WORKSHEET_NAME + ')');
+          setStatusPill('live', '');
         }
         setData(rows, 'live');
         loadAuxWorksheets();
@@ -835,7 +835,7 @@
     if (btn) btn.disabled = true;
     runBigQueryQuery(BQ_SQL)
       .then(function (rows) {
-        setStatusPill('live', 'Live (BigQuery)');
+        setStatusPill('live', '');
         setData(rows, 'live');
       })
       .catch(function (err) {
