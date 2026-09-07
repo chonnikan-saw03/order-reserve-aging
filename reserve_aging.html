@@ -403,8 +403,10 @@
   var NUMERIC_FIELDS = ['so_qty', 'so_amount', 'remain_reserve_qty', 'remain_reserve_amount'];
   var CATEGORICAL_HUES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
   var DETAIL_COLUMNS = [
-    { key: 'vendor_id', label: 'vendor_id' },
-    { key: 'full_name', label: 'VENDOR NAME' },
+    // vendor_id/full_name ยังต้องอยู่ในลิสต์นี้เพื่อให้ fuzzy-match กับ worksheet ได้
+    // (ใช้แสดงในกล่อง Vendor แทน) แต่ hidden:true ไว้ไม่ให้ขึ้นในตาราง Detail/Excel
+    { key: 'vendor_id', label: 'vendor_id', hidden: true },
+    { key: 'full_name', label: 'VENDOR NAME', hidden: true },
     { key: 'branch', label: 'branch' },
     { key: 'sales_group', label: 'sales_group' },
     { key: 'ref_sales_rep', label: 'ref_sales_rep' },
@@ -426,6 +428,7 @@
     { key: 'remain_reserve_qty', label: 'จำนวนชิ้นค้างตัด', numeric: true, fmt: 'int' },
     { key: 'remain_reserve_amount', label: 'มูลค่าค้างตัด', numeric: true, fmt: 'money2' }
   ];
+  var VISIBLE_DETAIL_COLUMNS = DETAIL_COLUMNS.filter(function (col) { return !col.hidden; });
 
   // ---------- State ----------
   var state = {
@@ -1070,7 +1073,7 @@
   var DETAIL_PREVIEW_ROWS = 10;
 
   function renderTableHead() {
-    document.getElementById('table-head-row').innerHTML = DETAIL_COLUMNS.map(function (col) {
+    document.getElementById('table-head-row').innerHTML = VISIBLE_DETAIL_COLUMNS.map(function (col) {
       return '<th data-sort="' + col.key + '"' + (col.numeric ? ' class="num-cell"' : '') + '>' + escapeHtml(col.label) + '</th>';
     }).join('');
   }
@@ -1095,19 +1098,19 @@
     document.getElementById('table-count-note').textContent =
       filtered.length ? 'แสดง ' + fmtInt(Math.min(DETAIL_PREVIEW_ROWS, filtered.length)) + ' จาก ' + fmtInt(filtered.length) + ' รายการ' : '';
     if (!filtered.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="' + DETAIL_COLUMNS.length + '">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="' + VISIBLE_DETAIL_COLUMNS.length + '">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
       return;
     }
     tbody.innerHTML = filtered.slice(0, DETAIL_PREVIEW_ROWS).map(function (r) {
-      return '<tr>' + DETAIL_COLUMNS.map(function (col) { return detailCellHtml(col, r); }).join('') + '</tr>';
+      return '<tr>' + VISIBLE_DETAIL_COLUMNS.map(function (col) { return detailCellHtml(col, r); }).join('') + '</tr>';
     }).join('');
   }
 
   function orderDetailSheetData() {
     var filtered = getFiltered();
-    var headers = DETAIL_COLUMNS.map(function (col) { return col.label; });
+    var headers = VISIBLE_DETAIL_COLUMNS.map(function (col) { return col.label; });
     var rows = filtered.map(function (r) {
-      return DETAIL_COLUMNS.map(function (col) {
+      return VISIBLE_DETAIL_COLUMNS.map(function (col) {
         var v = r[col.key];
         return col.numeric ? (col.fmt === 'money2' ? Math.round(v * 100) / 100 : v) : v;
       });
