@@ -1040,9 +1040,14 @@
 
     var labelsHtml = segs.map(function (s) {
       var hx = s.kx + s.side * 16;
-      // เส้นตรงจากขอบวงไป elbow (มุมเดิม รัศมีไกลขึ้น) แล้วค่อยหักสั้นๆ ไปยัง label
-      // ช่วยไม่ให้เส้นของ segment เล็กๆ ใกล้กันวิ่งตัดกันตอนที่ label ถูกขยับตำแหน่งแนวตั้ง
-      arcs += '<polyline points="' + s.ex + ',' + s.ey + ' ' + s.kx + ',' + s.ky + ' ' + hx + ',' + s.hy + '" fill="none" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></polyline>';
+      // ปกติชี้เส้นตรงจากขอบวงไปยัง label เลย (เรียบกว่า) แต่ถ้าตำแหน่ง label ถูกขยับ
+      // ออกจากมุมธรรมชาติไปมาก (เพราะชนขอบบน/ล่าง หรือชนกับ label ข้างเคียง) ให้หักมุมผ่าน
+      // elbow (รัศมีไกลขึ้นที่มุมเดิม) ก่อน จะได้ไม่วิ่งตัดกับเส้นของ segment ข้างๆ
+      if (Math.abs(s.hy - s.ky) > 20) {
+        arcs += '<polyline points="' + s.ex + ',' + s.ey + ' ' + s.kx + ',' + s.ky + ' ' + hx + ',' + s.hy + '" fill="none" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></polyline>';
+      } else {
+        arcs += '<line x1="' + s.ex + '" y1="' + s.ey + '" x2="' + hx + '" y2="' + s.hy + '" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"></line>';
+      }
       var anchorX = cx + s.side * 132;
       var posStyle = s.side === 1
         ? 'left:' + (anchorX / VBW) * 100 + '%; text-align:left;'
