@@ -1036,6 +1036,9 @@
         var shift = ((group[0].hy + group[group.length - 1].hy) / 2) - ((group[0].hy0 + group[group.length - 1].hy0) / 2);
         group.forEach(function (s) { s.hy -= shift; });
       }
+      // เส้นชี้ต้องหักมุมเฉพาะตอนที่ "ฝั่งเดียวกันมีมากกว่า 1 label" เท่านั้น (มีของให้ชนจริง)
+      // ไม่ใช่แค่เพราะ label ถูกขยับหนีขอบบน/ล่างของ label เดี่ยวๆ ที่ไม่มีอะไรให้ชน
+      group.forEach(function (s) { s.needsBend = group.length > 1; });
     });
 
     var labelsHtml = segs.map(function (s) {
@@ -1044,10 +1047,10 @@
       // เว้นระยะห่างระหว่างปลายเส้นชี้กับจุดเริ่มข้อความไว้เสมอ (กันเส้นวิ่งเข้าไปชิด/ทับตัวอักษร)
       var hxRaw = s.kx + s.side * 16;
       var hx = s.side === 1 ? Math.min(hxRaw, anchorX - LABEL_GAP) : Math.max(hxRaw, anchorX + LABEL_GAP);
-      // ปกติชี้เส้นตรงจากขอบวงไปยัง label เลย (เรียบกว่า) แต่ถ้าตำแหน่ง label ถูกขยับ
-      // ออกจากมุมธรรมชาติไปมาก (เพราะชนขอบบน/ล่าง หรือชนกับ label ข้างเคียง) ให้หักมุมผ่าน
-      // elbow (รัศมีไกลขึ้นที่มุมเดิม) ก่อน จะได้ไม่วิ่งตัดกับเส้นของ segment ข้างๆ
-      if (Math.abs(s.hy - s.ky) > 20) {
+      // ปกติชี้เส้นตรงจากขอบวงไปยัง label เลย (เรียบกว่า) แต่ถ้าฝั่งเดียวกันมีมากกว่า 1 label
+      // (มี label อื่นให้อาจจะชนจริงๆ) ให้หักมุมผ่าน elbow (รัศมีไกลขึ้นที่มุมเดิม) ก่อน
+      // จะได้ไม่วิ่งตัดกับเส้นของ segment ข้างๆ
+      if (s.needsBend) {
         arcs += '<polyline points="' + s.ex + ',' + s.ey + ' ' + s.kx + ',' + s.ky + ' ' + hx + ',' + s.hy + '" fill="none" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></polyline>';
       } else {
         arcs += '<line x1="' + s.ex + '" y1="' + s.ey + '" x2="' + hx + '" y2="' + s.hy + '" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"></line>';
