@@ -197,10 +197,10 @@
   }
   .view-toggle-btn:hover { background: var(--surface-1); }
   .card-view { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-  .donut-flex-area { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; }
   .card-view > * { min-width: 0; min-height: 0; }
   #aging-bars { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; }
   #branch-bars { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow-y: auto; }
+  #priority-bars { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; }
 
   .pay-row { display: flex; flex-direction: column; gap: 6px; }
   .pay-row-top { display: flex; align-items: center; gap: 8px; }
@@ -219,16 +219,6 @@
   .mini-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; flex-shrink: 0; }
 
-  .donut-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 6px; }
-  .donut-legend .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
-  .donut-outer-wrap { position: relative; width: 100%; max-width: 480px; margin: 0 auto; min-width: 0; aspect-ratio: 560 / 300; container-type: inline-size; }
-  .donut-outer-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .donut-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(116px, 22cqw); text-align: center; pointer-events: none; }
-  .donut-center-value { font-size: clamp(13px, 4.6cqw, 21px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
-  .donut-center-label { font-size: clamp(7px, 2.4cqw, 11px); line-height: 1.25; color: var(--text-muted); margin-top: 2px; }
-  .donut-label-item { position: absolute; transform: translateY(-50%); max-width: 220px; font-size: 14px; line-height: 1.3; pointer-events: none; white-space: nowrap; }
-  .donut-label-item .dl-title { font-weight: 700; color: var(--text-primary); }
-  .donut-label-item .dl-amount { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   @media print {
     .header-actions, .table-toolbar .search-input { display: none; }
@@ -324,14 +314,7 @@
             <button type="button" class="view-toggle-btn" data-view="chart">View Table</button>
           </div>
           <div class="card-view card-view-chart">
-            <div class="donut-legend" id="priority-legend"></div>
-            <div class="donut-flex-area">
-              <div class="donut-outer-wrap">
-                <svg id="priority-donut" viewBox="0 0 560 300" preserveAspectRatio="xMidYMid meet"></svg>
-                <div class="donut-center" id="priority-center"></div>
-                <div id="priority-labels"></div>
-              </div>
-            </div>
+            <div id="priority-bars"></div>
           </div>
           <div class="card-view card-view-detail" style="display:none">
             <div class="mini-table-scroll">
@@ -449,7 +432,6 @@
   // ---------- Helpers ----------
   function fmtInt(n) { return Math.round(Number(n) || 0).toLocaleString('th-TH'); }
   function fmtMoney(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString('th-TH'); }
-  function fmtMillion(n) { return '฿' + ((Number(n) || 0) / 1e6).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M'; }
   function fmtNum(n) { return Math.round(Number(n) || 0).toLocaleString('th-TH'); }
   function fmtNum2(n) { return (Number(n) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fmtTimestamp(d) {
@@ -986,88 +968,24 @@
         '<td class="num">' + fmtNum(m.remain_reserve_amount) + '</td></tr>';
     }).join('');
 
-    // -- by delivery priority (donut with outside labels) --
+    // -- by delivery priority (bar chart) --
     var priorityMetrics = pickMetrics(filtered, 'delivery_priority', 'delivery');
     var priorityTotals = {};
     Object.keys(priorityMetrics).forEach(function (k) { priorityTotals[k] = priorityMetrics[k].remain_reserve_amount; });
     var priorityLabels = Object.keys(priorityMetrics).sort(function (a, b) { return a.localeCompare(b, 'th'); });
-    var VBW = 560, VBH = 300, cx = 280, cy = 150, r = 82, strokeW = 26;
-    var circumference = 2 * Math.PI * r;
-    var dashOffset = 0, angleDeg = 0;
-    var arcs = '';
-    var segs = [];
-    priorityLabels.forEach(function (label) {
+    document.getElementById('priority-bars').innerHTML = priorityLabels.map(function (label) {
       var amt = priorityTotals[label];
-      var frac = grandTotal > 0 ? amt / grandTotal : 0;
-      var pct = grandTotal > 0 ? Math.round(frac * 1000) / 10 : 0;
+      var pct = grandTotal > 0 ? Math.round((amt / grandTotal) * 100) : 0;
+      var widthPct = grandTotal > 0 ? (amt / grandTotal) * 100 : 0;
       var color = colorForPriority(label);
-      var fullDash = frac * circumference;
-      var SEG_GAP = 4;
-      var dash = Math.max(fullDash - SEG_GAP, 0);
-      arcs += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + strokeW + '" ' +
-        'stroke-linecap="butt" stroke-dasharray="' + dash + ' ' + (circumference - dash) + '" stroke-dashoffset="' + (-(dashOffset + SEG_GAP / 2)) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle>';
-
-      var midDeg = angleDeg + (frac * 360) / 2;
-      var rad = (midDeg * Math.PI) / 180 - Math.PI / 2;
-      var side = Math.cos(rad) >= 0 ? 1 : -1;
-      var edge = r + strokeW / 2 + 8;
-      var elbow = r + 58;
-      var ex = cx + Math.cos(rad) * edge, ey = cy + Math.sin(rad) * edge;
-      var kx = cx + Math.cos(rad) * elbow, ky = cy + Math.sin(rad) * elbow;
-      // กันไม่ให้ label ของ segment เล็กๆ ใกล้จุดเริ่มวง (12 นาฬิกา) ไปชนกับ legend ด้านบน
-      // เว้นระยะขอบบน/ล่างไว้พอสำหรับความสูงของ label เอง (2 บรรทัด)
-      var LABEL_EDGE_PAD = 46;
-      var hyClamped = Math.max(LABEL_EDGE_PAD, Math.min(VBH - LABEL_EDGE_PAD, ky));
-      segs.push({ label: label, amt: amt, pct: pct, side: side, ex: ex, ey: ey, kx: kx, ky: ky, hy: hyClamped, hy0: hyClamped });
-
-      dashOffset += fullDash;
-      angleDeg += frac * 360;
-    });
-
-    // avoid overlapping labels stacked on the same side: enforce a minimum vertical gap
-    var MIN_GAP = 34;
-    [-1, 1].forEach(function (side) {
-      var group = segs.filter(function (s) { return s.side === side; }).sort(function (a, b) { return a.hy - b.hy; });
-      for (var i = 1; i < group.length; i++) {
-        if (group[i].hy - group[i - 1].hy < MIN_GAP) group[i].hy = group[i - 1].hy + MIN_GAP;
-      }
-      // re-center the group around its original vertical middle so it doesn't drift toward one edge
-      if (group.length) {
-        var shift = ((group[0].hy + group[group.length - 1].hy) / 2) - ((group[0].hy0 + group[group.length - 1].hy0) / 2);
-        group.forEach(function (s) { s.hy -= shift; });
-      }
-      // เส้นชี้ต้องหักมุมเฉพาะตอนที่ "ฝั่งเดียวกันมีมากกว่า 1 label" เท่านั้น (มีของให้ชนจริง)
-      // ไม่ใช่แค่เพราะ label ถูกขยับหนีขอบบน/ล่างของ label เดี่ยวๆ ที่ไม่มีอะไรให้ชน
-      group.forEach(function (s) { s.needsBend = group.length > 1; });
-    });
-
-    var labelsHtml = segs.map(function (s) {
-      var anchorX = cx + s.side * 132;
-      var LABEL_GAP = 34;
-      // เว้นระยะห่างระหว่างปลายเส้นชี้กับจุดเริ่มข้อความไว้เสมอ (กันเส้นวิ่งเข้าไปชิด/ทับตัวอักษร)
-      var hxRaw = s.kx + s.side * 16;
-      var hx = s.side === 1 ? Math.min(hxRaw, anchorX - LABEL_GAP) : Math.max(hxRaw, anchorX + LABEL_GAP);
-      // ปกติชี้เส้นตรงจากขอบวงไปยัง label เลย (เรียบกว่า) แต่ถ้าฝั่งเดียวกันมีมากกว่า 1 label
-      // (มี label อื่นให้อาจจะชนจริงๆ) ให้หักมุมผ่าน elbow (รัศมีไกลขึ้นที่มุมเดิม) ก่อน
-      // จะได้ไม่วิ่งตัดกับเส้นของ segment ข้างๆ
-      if (s.needsBend) {
-        arcs += '<polyline points="' + s.ex + ',' + s.ey + ' ' + s.kx + ',' + s.ky + ' ' + hx + ',' + s.hy + '" fill="none" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></polyline>';
-      } else {
-        arcs += '<line x1="' + s.ex + '" y1="' + s.ey + '" x2="' + hx + '" y2="' + s.hy + '" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"></line>';
-      }
-      var posStyle = s.side === 1
-        ? 'left:' + (anchorX / VBW) * 100 + '%; text-align:left;'
-        : 'right:' + ((VBW - anchorX) / VBW) * 100 + '%; text-align:right;';
-      return '<div class="donut-label-item" style="top:' + (s.hy / VBH) * 100 + '%; ' + posStyle + '">' +
-        '<div class="dl-title">' + escapeHtml(s.label) + ' ' + s.pct + '%</div>' +
-        '<div class="dl-amount">' + fmtMoney(s.amt) + '</div></div>';
-    }).join('');
-    document.getElementById('priority-donut').innerHTML = arcs;
-    document.getElementById('priority-labels').innerHTML = labelsHtml;
-    document.getElementById('priority-center').innerHTML =
-      '<div class="donut-center-value">' + fmtMillion(grandTotal) + '</div><div class="donut-center-label">รวมมูลค่าค้างตัด</div>';
-    document.getElementById('priority-legend').innerHTML = priorityLabels.map(function (label) {
-      return '<span class="legend-item"><span class="legend-dot" style="background:' + colorForPriority(label) + '"></span>' + escapeHtml(label) + '</span>';
+      return '<div class="pay-row">' +
+        '<div class="pay-row-top">' +
+        '<span class="pay-row-label">' + escapeHtml(label) + '</span>' +
+        '<span class="pay-row-value">' + fmtNum(amt) + '</span>' +
+        '<span class="pay-row-badge">' + pct + '%</span>' +
+        '</div>' +
+        '<span class="pay-row-track"><span class="pay-row-fill" style="width:' + widthPct + '%;background:' + color + '"></span></span>' +
+        '</div>';
     }).join('');
     document.getElementById('priority-detail-table').innerHTML = priorityLabels.map(function (label) {
       var m = priorityMetrics[label];
