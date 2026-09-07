@@ -302,7 +302,7 @@
           <div class="card-view card-view-detail" style="display:none">
             <div class="mini-table-scroll">
               <table class="mini-table">
-                <thead><tr><th>ช่วงอายุ</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนชิ้นค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
+                <thead><tr><th>So Aging Tier</th><th class="num">จำนวนใน SO</th><th class="num">มูลค่าใน SO</th><th class="num">จำนวนชิ้นค้างตัด</th><th class="num">มูลค่าค้างตัด</th></tr></thead>
                 <tbody id="aging-table"></tbody>
               </table>
             </div>
@@ -1024,7 +1024,7 @@
     }).join('');
 
     state.detailData = {
-      aging: { labelHeader: 'ช่วงอายุ', labels: agingLabels, metrics: agingMetrics },
+      aging: { labelHeader: 'So Aging Tier', labels: agingLabels, metrics: agingMetrics },
       priority: { labelHeader: 'Delivery Priority', labels: priorityLabels, metrics: priorityMetrics },
       branch: { labelHeader: 'สาขา', labels: branchLabels, metrics: branchMetrics }
     };
@@ -1112,7 +1112,7 @@
       var ws = XLSX.utils.aoa_to_sheet(aoa);
       XLSX.utils.book_append_sheet(wb, ws, name);
     }
-    addSheet('ช่วงอายุ SO', detailSheetData('aging'));
+    addSheet('So Aging Tier', detailSheetData('aging'));
     addSheet('Delivery Priority', detailSheetData('priority'));
     addSheet('สาขา', detailSheetData('branch'));
     addSheet('Order Detail', orderDetailSheetData());
