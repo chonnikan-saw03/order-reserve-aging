@@ -140,6 +140,7 @@
     cursor: pointer;
   }
   .download-all-btn:hover { background: var(--header-tab-bg-hover); }
+  @media (max-width: 560px) { .download-all-btn { flex-basis: 100%; max-width: 38px; } }
   .overview-grid {
     display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "branch aging" "branch priority";
     gap: 16px; align-items: stretch;
