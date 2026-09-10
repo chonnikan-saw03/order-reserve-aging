@@ -55,10 +55,11 @@
     padding: 20px 28px;
     position: sticky; top: 0; z-index: 100;
   }
+  .topbar-main { display: flex; align-items: center; gap: 16px; flex-wrap: nowrap; min-width: 0; flex: 1 1 auto; margin-right: auto; }
   .topbar-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .topbar-icon svg { width: 18px; height: 18px; }
-  .topbar-title-group { margin-right: auto; min-width: 0; flex: 1 1 auto; }
-  .topbar-title { font-size: 18px; font-weight: 700; letter-spacing: 0.04em; margin: 0; text-transform: uppercase; text-wrap: balance; }
+  .topbar-title-group { min-width: 0; flex: 1 1 auto; }
+  .topbar-title { font-size: 18px; font-weight: 700; letter-spacing: 0.04em; margin: 0; text-transform: uppercase; text-wrap: balance; overflow-wrap: break-word; }
   .topbar-subtitle { font-size: 12px; color: var(--header-sub-ink); margin: 2px 0 0; }
 
   .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -191,12 +192,14 @@
 
 <div class="app-shell">
   <header class="topbar">
-    <div class="topbar-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-    </div>
-    <div class="topbar-title-group">
-      <h1 class="topbar-title">Order Reserve Aging Dashboard</h1>
-      <p class="topbar-subtitle" id="topbar-subtitle">กำลังโหลดข้อมูล...</p>
+    <div class="topbar-main">
+      <div class="topbar-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <div class="topbar-title-group">
+        <h1 class="topbar-title">Order Reserve Aging Dashboard</h1>
+        <p class="topbar-subtitle" id="topbar-subtitle">กำลังโหลดข้อมูล...</p>
+      </div>
     </div>
     <button type="button" class="download-all-btn" id="btn-download-all" title="ดาวน์โหลดข้อมูลทั้งหมด (Excel, แยก sheet)" aria-label="ดาวน์โหลดข้อมูลทั้งหมด">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
