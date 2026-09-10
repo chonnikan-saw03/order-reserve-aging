@@ -1,7 +1,7 @@
 <!-- Order Reserve Aging Dashboard — Tableau Dashboard Extension
-     ดึงข้อมูลจาก BigQuery (boonthavorn-data-analytic.tableau.ds_vdo_order_reserve_aging) ผ่าน Google OAuth
-     ตอนนี้ CONFIG.GOOGLE_CLIENT_ID ยังว่าง -> หน้านี้แสดง "ข้อมูลตัวอย่าง (Mock)" ให้ดูหน้าตาก่อน
-     เมื่อมี OAuth Client ID แล้ว ใส่ค่าใน CONFIG ด้านล่าง กด "Refresh Data" จะ sign-in และดึงข้อมูลจริง -->
+     อ่านข้อมูลจาก worksheet "Reserve" ใน dashboard เดียวกันเป็นหลัก (ผ่าน Tableau Extensions API)
+     BigQuery + Google OAuth มีไว้เป็นทางเลือกสำรอง (ยังไม่ได้ผูกปุ่มไหนไว้) ดู README.md
+     ถ้าโหลดข้อมูลไม่สำเร็จไม่ว่ากรณีใด หน้านี้จะแสดงโครง dashboard แบบว่างเปล่า ไม่ใช้ข้อมูลตัวอย่าง -->
 <meta charset="UTF-8" />
 <title>Order Reserve Aging Dashboard</title>
 <style>
@@ -193,7 +193,7 @@
     </div>
     <div class="topbar-title-group">
       <h1 class="topbar-title">Order Reserve Aging Dashboard</h1>
-      <p class="topbar-subtitle" id="topbar-subtitle">ข้อมูลตัวอย่าง (Mock)</p>
+      <p class="topbar-subtitle" id="topbar-subtitle">กำลังโหลดข้อมูล...</p>
     </div>
     <button type="button" class="download-all-btn" id="btn-download-all" title="ดาวน์โหลดข้อมูลทั้งหมด (Excel, แยก sheet)" aria-label="ดาวน์โหลดข้อมูลทั้งหมด">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
@@ -330,7 +330,7 @@
   // ---------- CONFIG ----------
   // ใส่ OAuth Client ID (Web application) จาก GCP Console > APIs & Services > Credentials
   // ต้องเพิ่ม origin ที่ host ไฟล์นี้ไว้ใน "Authorized JavaScript origins" (เช่น http://localhost:8765)
-  // ถ้าเว้นว่างไว้ หน้านี้จะใช้ "ข้อมูลตัวอย่าง (Mock)" แทนเสมอ
+  // ถ้าเว้นว่างไว้ เส้นทาง BigQuery นี้จะใช้ไม่ได้ (แต่ทางหลักคือ worksheet ไม่ได้พึ่งค่านี้)
   var CONFIG = {
     GOOGLE_CLIENT_ID: '',
     PROJECT_ID: 'boonthavorn-data-analytic',
@@ -389,7 +389,7 @@
   // ---------- State ----------
   var state = {
     rows: [],
-    source: 'mock',
+    source: 'empty',
     updatedAt: null,
     search: '',
     sortField: 'remain_reserve_amount',
@@ -440,83 +440,6 @@
   }
   function setStatusPill(kind, text) {
     document.getElementById('topbar-subtitle').textContent = text;
-  }
-
-  // ---------- Mock data ----------
-  function buildMockData() {
-    var products = [
-      ['1287255', 'C11003H สุขภัณฑ์ชิ้นเดียว3/5.5L Wynn II', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์ชิ้นเดียว', 'เครื่องสุขภัณฑ์'],
-      ['1308051', 'C109227 WH/GR สุขภัณฑ์อัตโนมัติ โปร ทอง', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์อัตโนมัติ', 'เครื่องสุขภัณฑ์'],
-      ['1201563', 'CT2326A ก็อกผสมยืนอาบ Essentia', 'COTTO', 'ห้องน้ำ', 'ก็อกน้ำ', 'ก็อกผสมยืนอาบ', 'ก็อกและอุปกรณ์'],
-      ['1172004', 'CT2321A ก็อกผสมอ่างล้างหน้า ESSENTIA', 'COTTO', 'ห้องน้ำ', 'ก็อกน้ำ', 'ก็อกผสมอ่างล้างหน้า', 'ก็อกและอุปกรณ์'],
-      ['1264894', 'ZF17V#BGR หัวฝักบัวก้านแข็งขนาด 12X12', 'COTTO', 'ห้องน้ำ', 'ฝักบัว', 'ฝักบัวก้านแข็ง', 'ก็อกและอุปกรณ์'],
-      ['1114705', 'C135107 สุขภัณฑ์สองชิ้น4.5 HERCULES CURVE', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์สองชิ้น', 'เครื่องสุขภัณฑ์'],
-      ['1088805', 'C13021 สุขภัณฑ์นั่งราบใช้ฟลัช SYDNEYS(45)', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์นั่งราบ', 'เครื่องสุขภัณฑ์'],
-      ['1345196', 'CT2392A#BGR ก็อกผสมอ่างล้างหน้า', 'COTTO', 'ห้องน้ำ', 'ก็อกน้ำ', 'ก็อกผสมอ่างล้างหน้า', 'ก็อกและอุปกรณ์'],
-      ['1248275', 'C10217 สุขภัณฑ์อัตโนมัติ 6 L. รุ่น VIZIO', 'COTTO', 'ห้องน้ำ', 'สุขภัณฑ์', 'สุขภัณฑ์อัตโนมัติ', 'เครื่องสุขภัณฑ์'],
-      ['2201044', 'SC-2210 กระเบื้องปูพื้น 60x60', 'SCG', 'กระเบื้อง', 'กระเบื้องพื้น', 'กระเบื้องปูพื้นขนาดใหญ่', 'วัสดุปูพื้น-ผนัง'],
-      ['2201099', 'SC-1180 กระเบื้องบุผนัง 30x60', 'SCG', 'กระเบื้อง', 'กระเบื้องผนัง', 'กระเบื้องบุผนัง', 'วัสดุปูพื้น-ผนัง'],
-      ['3300112', 'AM-500 อ่างล้างหน้าแขวนผนัง', 'AMERICAN STANDARD', 'ห้องน้ำ', 'อ่างล้างหน้า', 'อ่างล้างหน้าแขวนผนัง', 'เครื่องสุขภัณฑ์']
-    ];
-    var branches = ['สาขารัชดา', 'สาขาบางนา', 'สาขาพระราม 2', 'สาขาสุราษฎร์ธานี', 'สาขาพุทธมณฑล',
-      'สาขาเกษตร-นวมินทร์', 'สาขาราชพฤกษ์', 'สาขาพัทยา', 'สาขารังสิต', 'สาขาเชียงใหม่',
-      'สาขาหัวหิน', 'สาขาอุดรธานี', 'สาขาโคราช', 'สาขาพิษณุโลก', 'สาขาระยอง'];
-    var salesGroups = ['10 : ร้านค้าปลีก', '20 : โครงการ', '30 : ลูกค้าองค์กร'];
-    var salesReps = ['สมชาย ใจดี', 'วิภา ศรีสุข', 'ประยุทธ มั่นคง'];
-    var salesRepIds = ['SR-101', 'SR-102', 'SR-103'];
-    var refSalesRepNames = ['กมล ศรีทอง', 'อรุณี พงษ์เจริญ', 'ธนกร วัฒนกุล'];
-    var refSalesRepIds = ['SR-201', 'SR-202', 'SR-203'];
-    var agingTiers = ['A. 1-15 Days', 'B. 16-30 Days', 'C. 31-60 Days', 'D. 61-90 Days', 'E. 91-120 Days',
-      'F. 121-150 Days', 'G. 151-180 Days', 'H. 181-365 Days', 'I. > 1 Year'];
-    var priorities = ['10 : รับทันที', '30 : สาขาส่งให้', '40 : ส่งต่อ', '80 : Click&Collect'];
-    var vendorId = '10254';
-    var vendorName = 'บจก.สยามซานิทารีแวร์อินดัสตรี';
-
-    var rows = [];
-    var seed = 42;
-    function rand() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-    function pick(arr) { return arr[Math.floor(rand() * arr.length)]; }
-
-    for (var i = 0; i < 220; i++) {
-      var p = pick(products);
-      var qty = Math.round(4 + rand() * 200);
-      var unitPrice = 400 + rand() * 5000;
-      var soAmount = qty * unitPrice;
-      var remainQty = Math.round(qty * (0.4 + rand() * 0.6));
-      var remainAmount = remainQty * unitPrice;
-      var repIdx = Math.floor(rand() * salesReps.length);
-      var refIdx = Math.floor(rand() * refSalesRepNames.length);
-      rows.push({
-        vendor_id: vendorId,
-        full_name: vendorName,
-        branch: pick(branches),
-        sales_group: pick(salesGroups),
-        sls_rep_id: salesRepIds[repIdx],
-        sls_rep_f_name: salesReps[repIdx],
-        ref_sales_rep: refSalesRepIds[refIdx],
-        ref_sls_rep_f_name: refSalesRepNames[refIdx],
-        so_aging_tiers: pick(agingTiers),
-        delivery_priority: pick(priorities),
-        article_id: p[0],
-        article_name_th: p[1],
-        brand: p[2],
-        mch1_desc: p[3],
-        mch2_desc: p[4],
-        mch3_desc: p[5],
-        mch_desc: p[6],
-        so_number: 'SO' + (500000 + i),
-        so_qty: qty,
-        so_amount: Math.round(soAmount * 100) / 100,
-        remain_reserve_qty: remainQty,
-        remain_reserve_amount: Math.round(remainAmount * 100) / 100
-      });
-    }
-    return rows;
-  }
-
-  function loadMockData() {
-    setStatusPill('mock', 'ข้อมูลตัวอย่าง (Mock)');
-    setData(buildMockData(), 'mock');
   }
 
   // ---------- Tableau worksheet (primary data source) ----------
@@ -671,10 +594,10 @@
     var ws = findWorksheet(CONFIG.WORKSHEET_NAME);
     if (!ws) {
       var availableNames = tableau.extensions.dashboardContent.dashboard.worksheets.map(function (w) { return w.name; });
-      var msg = 'ไม่พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" (มีอยู่: ' + (availableNames.join(', ') || 'ไม่มี worksheet เลย') + ') ใช้ข้อมูลตัวอย่างแทน';
+      var msg = 'ไม่พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" (มีอยู่: ' + (availableNames.join(', ') || 'ไม่มี worksheet เลย') + ')';
       console.warn(msg);
       setStatusPill('error', msg);
-      setData(buildMockData(), 'mock');
+      setData([], 'empty');
       return;
     }
     setStatusPill('loading', 'กำลังดึงข้อมูลจาก Tableau...');
@@ -683,10 +606,10 @@
         var parsed = parseWorksheetTable(dataTable);
         if (parsed.matchedCount === 0) {
           var msg = 'พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" แต่จับคู่ชื่อคอลัมน์ไม่ได้เลย ' +
-            '(คอลัมน์ที่เจอ: ' + (parsed.captions.join(', ') || 'ไม่มี') + ') ใช้ข้อมูลตัวอย่างแทน';
+            '(คอลัมน์ที่เจอ: ' + (parsed.captions.join(', ') || 'ไม่มี') + ')';
           console.warn(msg);
           setStatusPill('error', msg);
-          setData(buildMockData(), 'mock');
+          setData([], 'empty');
           return;
         }
         var rows = parsed.rows;
@@ -722,7 +645,7 @@
       .catch(function (err) {
         console.error(err);
         setStatusPill('error', 'ดึงข้อมูลจาก worksheet ไม่สำเร็จ: ' + err.message);
-        setData(buildMockData(), 'mock');
+        setData([], 'empty');
       });
   }
 
@@ -806,7 +729,8 @@
 
   function refreshData() {
     if (!CONFIG.GOOGLE_CLIENT_ID) {
-      loadMockData();
+      setStatusPill('error', 'ยังไม่ได้ตั้งค่า Google Client ID');
+      setData([], 'empty');
       return;
     }
     ensureGisClient();
@@ -1152,11 +1076,11 @@
           var msg = 'เริ่มต้น Tableau extension ไม่สำเร็จ: ' + (err && err.message ? err.message : err);
           console.warn(msg);
           setStatusPill('error', msg);
-          setData(buildMockData(), 'mock');
+          setData([], 'empty');
         });
     } else {
       setStatusPill('error', 'ไม่พบ Tableau Extensions API (window.tableau) — หน้านี้ไม่ได้ถูกเปิดในฐานะ Tableau extension');
-      setData(buildMockData(), 'mock');
+      setData([], 'empty');
     }
   });
 })();
