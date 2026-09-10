@@ -605,8 +605,11 @@
       .then(function (dataTable) {
         var parsed = parseWorksheetTable(dataTable);
         if (parsed.matchedCount === 0) {
-          var msg = 'พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" แต่จับคู่ชื่อคอลัมน์ไม่ได้เลย ' +
-            '(คอลัมน์ที่เจอ: ' + (parsed.captions.join(', ') || 'ไม่มี') + ')';
+          // ถ้า worksheet ไม่มีคอลัมน์เลย (เช่น ไม่มีข้อมูลตรงกับ filter/parameter ที่เลือกไว้)
+          // แสดงข้อความสั้นๆ แทน ไม่ต้องลง detail เรื่องจับคู่คอลัมน์ซึ่งไม่เกี่ยวกับสาเหตุจริง
+          var msg = parsed.captions.length === 0
+            ? 'ไม่พบข้อมูล'
+            : 'พบ worksheet "' + CONFIG.WORKSHEET_NAME + '" แต่จับคู่ชื่อคอลัมน์ไม่ได้เลย (คอลัมน์ที่เจอ: ' + parsed.captions.join(', ') + ')';
           console.warn(msg);
           setStatusPill('error', msg);
           setData([], 'empty');
