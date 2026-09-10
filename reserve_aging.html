@@ -57,7 +57,7 @@
   }
   .topbar-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .topbar-icon svg { width: 18px; height: 18px; }
-  .topbar-title-group { margin-right: auto; }
+  .topbar-title-group { margin-right: auto; min-width: 0; flex: 1 1 auto; }
   .topbar-title { font-size: 18px; font-weight: 700; letter-spacing: 0.04em; margin: 0; text-transform: uppercase; text-wrap: balance; }
   .topbar-subtitle { font-size: 12px; color: var(--header-sub-ink); margin: 2px 0 0; }
 
@@ -86,6 +86,8 @@
     padding: 20px 24px;
   }
   .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .kpi-grid { grid-template-columns: 1fr; } }
   .kpi-card {
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
     padding: 16px 18px; display: flex; align-items: center; gap: 14px; min-width: 0;
